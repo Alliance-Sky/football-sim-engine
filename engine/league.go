@@ -53,6 +53,9 @@ type LeagueManager struct {
 	Schedule     []ScheduledRound
 	CurrentRound int
 
+	MaxPlayerRating float64 // Optional cap (0 = no limit)
+	MaxTeamRating   float64 // Optional cap (0 = no limit)
+
 	ChampionRewards map[string]int // Optional: e.g. {"Prestige": 1000, "Coins": 5000}
 	RunnerUpRewards map[string]int // Optional: e.g. {"Prestige": 500, "Coins": 2000}
 
@@ -62,13 +65,30 @@ type LeagueManager struct {
 }
 
 // NewLeagueManager initializes a new league, builds the standings map, and generates the interleaved round-robin and cup schedule.
-func NewLeagueManager(teams []*Team) (*LeagueManager, error) {
+// Validates all provided teams against the rating caps.
+func NewLeagueManager(teams []*Team, maxPlayerRating, maxTeamRating float64) (*LeagueManager, error) {
 	if len(teams) < 2 {
 		return nil, fmt.Errorf("league requires at least 2 teams")
 	}
 
+	// Validate Rating Caps
+	for _, team := range teams {
+		if maxTeamRating > 0 && team.OverallRating() > maxTeamRating {
+			return nil, fmt.Errorf("team %s overall rating %.1f exceeds league limit %.1f", team.Name, team.OverallRating(), maxTeamRating)
+		}
+		if maxPlayerRating > 0 {
+			for _, p := range team.Players {
+				if p.Rating > maxPlayerRating {
+					return nil, fmt.Errorf("player %s in team %s rating %.1f exceeds league limit %.1f", p.Name, team.Name, p.Rating, maxPlayerRating)
+				}
+			}
+		}
+	}
+
 	lm := &LeagueManager{
 		Teams:           teams,
+		MaxPlayerRating: maxPlayerRating,
+		MaxTeamRating:   maxTeamRating,
 		ChampionRewards: make(map[string]int),
 		RunnerUpRewards: make(map[string]int),
 		Standings:       make(map[string]*TableStanding),

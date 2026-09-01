@@ -96,7 +96,7 @@ arsenal, err := engine.LoadTeamFromJSON("t1", "Arsenal", "4-3-3 Attacking", "#f0
 ### 2. The LeagueManager (Season Automator)
 The `LeagueManager` handles scheduling, math, points, and standings so you don't have to. It automatically calculates **Points**, **Goal Difference**, **Recent Form (W/D/L)**, and dynamically interleaves **Knockout Cup Matches** into your season!
 ```go
-league, _ := engine.NewLeagueManager(teams) // Natively schedules all 380 matches + Knockout Cup
+league, _ := engine.NewLeagueManager(teams, 0, 0) // Natively schedules all matches. Pass rating caps if needed!
 
 // The engine natively tracks custom rewards for the winners!
 league.ChampionRewards["Prestige"] = 1000
