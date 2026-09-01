@@ -236,3 +236,24 @@ func QuickPlay(matchType MatchType, home, away *Team, homeAdv bool) (*MatchState
 	}
 	return nil, fmt.Errorf("invalid match type: %s", matchType)
 }
+
+// DeterministicPlay operates identically to QuickPlay, but accepts a specific RNG seed.
+// Passing the same seed with the same teams will always generate the exact same match events and scoreline.
+func DeterministicPlay(matchType MatchType, home, away *Team, homeAdv bool, seed int64) (*MatchState, error) {
+	if matchType == MatchLeague {
+		match, err := NewLeagueMatch(home, away, homeAdv, true)
+		if err != nil {
+			return nil, err
+		}
+		match.Rng = rand.New(rand.NewSource(seed))
+		return match.Play(), nil
+	} else if matchType == MatchCup {
+		match, err := NewCupMatch(home, away, homeAdv, true)
+		if err != nil {
+			return nil, err
+		}
+		match.Rng = rand.New(rand.NewSource(seed))
+		return match.Play(), nil
+	}
+	return nil, fmt.Errorf("invalid match type: %s", matchType)
+}
