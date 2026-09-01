@@ -1,0 +1,113 @@
+--- engine/models.go
++++ engine/models.go
+@@ -71,6 +71,7 @@
+ 	Foot             Foot     `json:"foot"`
+ 	Rating           float64  `json:"rating"`
++	Potential        float64  `json:"potential"`
+ 	Age              int      `json:"age"`
+ 	Health           float64  `json:"health"`
+ 	AssignedPosition Position `json:"assignedPosition"`
+@@ -82,8 +83,8 @@
+ 
+ // NewPlayer creates and validates a new Player instance.
+-func NewPlayer(id, name string, naturalPos Position, foot Foot, rating float64, age int, health float64, assignedPos *Position) (*Player, error) {
++func NewPlayer(id, name string, naturalPos Position, foot Foot, rating float64, age int, health float64, assignedPos *Position, potential float64) (*Player, error) {
+ 	if foot != FootLeft && foot != FootRight && foot != FootBoth {
+ 		return nil, fmt.Errorf("player '%s' foot '%s' is invalid; must be 'Left', 'Right', or 'Both'", name, foot)
+ 	}
+@@ -107,6 +108,7 @@
+ 		NaturalPosition:  naturalPos,
+ 		Foot:             foot,
+ 		Rating:           rating,
++		Potential:        max(rating, potential),
+ 		Age:              age,
+ 		Health:           health,
+ 		AssignedPosition: actualAssigned,
+--- engine/loaders.go
++++ engine/loaders.go
+@@ -21,7 +21,7 @@
+ 		if rp.AssignedPosition != "" {
+ 			assigned = &rp.AssignedPosition
+ 		}
+-		p, err := NewPlayer(rp.ID, rp.Name, rp.NaturalPosition, rp.Foot, rp.Rating, rp.Age, rp.Health, assigned)
++		p, err := NewPlayer(rp.ID, rp.Name, rp.NaturalPosition, rp.Foot, rp.Rating, rp.Age, rp.Health, assigned, rp.Potential)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+--- engine/bots.go
++++ engine/bots.go
+@@ -45,7 +45,7 @@
+ 			p, _ := NewPlayer(
+-				fmt.Sprintf("%s-p%d", id, i+1),
+-				fmt.Sprintf("%s Player %d", name, i+1),
+-				reqPos, foot, max(30.0, baseRating-rng.Float64()*10.0),
+-				20+rng.Intn(15), 100.0, &reqPos,
++				fmt.Sprintf("%s-p%d", id, i+1),
++				fmt.Sprintf("%s Player %d", name, i+1),
++				reqPos, foot, max(30.0, baseRating-rng.Float64()*10.0),
++				20+rng.Intn(15), 100.0, &reqPos, 90.0,
+ 			)
+ 			players = append(players, p)
+--- engine/engine_test.go
++++ engine/engine_test.go
+@@ -14,7 +14,7 @@
+-			p, err := NewPlayer(
+-				"p1", "Player 1", PosST, FootRight, tt.rating, tt.age, tt.health, nil,
+-			)
++			p, err := NewPlayer(
++				"p1", "Player 1", PosST, FootRight, tt.rating, tt.age, tt.health, nil, 99.0,
++			)
+ 			if tt.expectErr {
+@@ -35,7 +35,7 @@
+-	p, err := NewPlayer("p1", "Player 1", PosLB, FootBoth, 80.0, 25, 100.0, nil)
++	p, err := NewPlayer("p1", "Player 1", PosLB, FootBoth, 80.0, 25, 100.0, nil, 90.0)
+ 	if err != nil || p.OOPPenalty() != 0.0 {
+@@ -44,7 +44,7 @@
+-	pGK, _ := NewPlayer("p2", "Player 2", PosST, FootBoth, 80.0, 25, 100.0, new(PosGK))
++	pGK, _ := NewPlayer("p2", "Player 2", PosST, FootBoth, 80.0, 25, 100.0, new(PosGK), 90.0)
+ 	if pGK.OOPPenalty() != OutfieldInGoalPenalty {
+@@ -50,7 +50,7 @@
+-	pBoth, _ := NewPlayer("p3", "Player 3", PosLB, FootBoth, 80.0, 25, 100.0, new(PosRB))
++	pBoth, _ := NewPlayer("p3", "Player 3", PosLB, FootBoth, 80.0, 25, 100.0, new(PosRB), 90.0)
+ 	if pBoth.OOPPenalty() != SubOptimalPositionPenalty {
+@@ -56,7 +56,7 @@
+-	pLeft, _ := NewPlayer("p4", "Player 4", PosLB, FootLeft, 80.0, 25, 100.0, new(PosRB))
++	pLeft, _ := NewPlayer("p4", "Player 4", PosLB, FootLeft, 80.0, 25, 100.0, new(PosRB), 90.0)
+ 	if pLeft.OOPPenalty() != SubOptimalPositionPenalty+WrongSidePenalty {
+@@ -64,7 +64,7 @@
+-	p, err := NewPlayer("p1", "Player 1", PosCM, FootBoth, 90.0, 25, 75.0, nil)
++	p, err := NewPlayer("p1", "Player 1", PosCM, FootBoth, 90.0, 25, 75.0, nil, 90.0)
+ 	if err != nil {
+--- examples/basic-match/main.go
++++ examples/basic-match/main.go
+@@ -20,7 +20,7 @@
+ 			p, _ := engine.NewPlayer(
+-				fmt.Sprintf("%s-p%d", id, i+1),
+-				fmt.Sprintf("%s Player %d", name, i+1),
+-				reqPos, "Right", 80.0, 25, 100.0, &reqPos,
++				fmt.Sprintf("%s-p%d", id, i+1),
++				fmt.Sprintf("%s Player %d", name, i+1),
++				reqPos, "Right", 80.0, 25, 100.0, &reqPos, 85.0,
+ 			)
+--- examples/league-automator/main.go
++++ examples/league-automator/main.go
+@@ -18,7 +18,7 @@
+ 			p, _ := engine.NewPlayer(
+-				fmt.Sprintf("%s-p%d", id, i+1),
+-				fmt.Sprintf("%s Player %d", name, i+1),
+-				reqPos, "Right", 80.0-float64(offset), 25, 100.0, &reqPos,
++				fmt.Sprintf("%s-p%d", id, i+1),
++				fmt.Sprintf("%s Player %d", name, i+1),
++				reqPos, "Right", 80.0-float64(offset), 25, 100.0, &reqPos, 85.0,
+ 			)
+--- examples/deterministic-match/main.go
++++ examples/deterministic-match/main.go
+@@ -19,7 +19,7 @@
+ 			p, _ := engine.NewPlayer(
+-				fmt.Sprintf("%s-p%d", id, i+1),
+-				fmt.Sprintf("%s Player %d", name, i+1),
+-				reqPos, "Right", 80.0, 25, 100.0, &reqPos,
++				fmt.Sprintf("%s-p%d", id, i+1),
++				fmt.Sprintf("%s Player %d", name, i+1),
++				reqPos, "Right", 80.0, 25, 100.0, &reqPos, 85.0,
+ 			)

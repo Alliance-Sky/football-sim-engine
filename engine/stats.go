@@ -11,6 +11,7 @@ type PlayerMatchStats struct {
 	MatchCleanSheets int     `json:"matchCleanSheets"`
 	MatchTackles     int     `json:"matchTackles"`
 	MatchHealthLost  float64 `json:"matchHealthLost"`
+	MatchRatingGrowth float64 `json:"matchRatingGrowth"`
 
 	PostMatchMatches     int     `json:"postMatchMatches"`
 	PostMatchGoals       int     `json:"postMatchGoals"`
@@ -18,6 +19,7 @@ type PlayerMatchStats struct {
 	PostMatchCleanSheets int     `json:"postMatchCleanSheets"`
 	PostMatchTackles     int     `json:"postMatchTackles"`
 	PostMatchHealth      float64 `json:"postMatchHealth"`
+PostMatchRating      float64 `json:"postMatchRating"`
 }
 
 // StatsTracker manages the collection of stats for all players involved in a match.
@@ -48,6 +50,7 @@ func (st *StatsTracker) GetOrCreate(p *Player) *PlayerMatchStats {
 	entry.PostMatchCleanSheets = p.CleanSheets
 	entry.PostMatchTackles = p.Tackles
 	entry.PostMatchHealth = p.Health
+entry.PostMatchRating = p.Rating
 
 	st.Stats[p.ID] = entry
 	return entry

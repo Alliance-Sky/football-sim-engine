@@ -69,6 +69,7 @@ type Player struct {
 	NaturalPosition  Position `json:"naturalPosition"`
 	Foot             Foot     `json:"foot"`
 	Rating           float64  `json:"rating"`
+Potential        float64  `json:"potential"`
 	Age              int      `json:"age"`
 	Health           float64  `json:"health"`
 	AssignedPosition Position `json:"assignedPosition"`
@@ -81,7 +82,7 @@ type Player struct {
 }
 
 // NewPlayer creates and validates a new Player instance.
-func NewPlayer(id, name string, naturalPos Position, foot Foot, rating float64, age int, health float64, assignedPos *Position) (*Player, error) {
+func NewPlayer(id, name string, naturalPos Position, foot Foot, rating float64, age int, health float64, assignedPos *Position, potential float64) (*Player, error) {
 	if foot != FootLeft && foot != FootRight && foot != FootBoth {
 		return nil, fmt.Errorf("player '%s' foot '%s' is invalid; must be 'Left', 'Right', or 'Both'", name, foot)
 	}
@@ -106,6 +107,7 @@ func NewPlayer(id, name string, naturalPos Position, foot Foot, rating float64, 
 		NaturalPosition:  naturalPos,
 		Foot:             foot,
 		Rating:           rating,
+			Potential:        max(rating, potential),
 		Age:              age,
 		Health:           health,
 		AssignedPosition: actualAssigned,

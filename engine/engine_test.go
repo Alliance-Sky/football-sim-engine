@@ -19,11 +19,13 @@ func createTestTeam(name, formation, kitColor string, baseRating float64) (*Team
 				baseRating,
 				24,
 				100.0,
-				new(pos),
+				nil,
+				90.0,
 			)
 			if err != nil {
 				return nil, err
 			}
+			p.AssignedPosition = pos
 			players = append(players, p)
 			i++
 		}
@@ -33,7 +35,8 @@ func createTestTeam(name, formation, kitColor string, baseRating float64) (*Team
 
 func TestOOPPenalty(t *testing.T) {
 	// Natural position -> 0 penalty
-	p, err := NewPlayer("p1", "Player 1", PosLB, FootBoth, 80.0, 25, 100.0, nil)
+	p, err := NewPlayer("p1", "Player 1", PosLB, FootBoth, 80.0, 25, 100.0, nil,
+					90.0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -42,19 +45,19 @@ func TestOOPPenalty(t *testing.T) {
 	}
 
 	// Outfielder in GK -> 50% penalty
-	pGK, _ := NewPlayer("p2", "Player 2", PosST, FootBoth, 80.0, 25, 100.0, new(PosGK))
+	pGK, _ := NewPlayer("p2", "Player 2", PosST, FootBoth, 80.0, 25, 100.0, new(PosGK), 90.0)
 	if pGK.EffectiveRating() != 40.0 {
 		t.Errorf("expected 40.0 for ST playing GK, got %.1f", pGK.EffectiveRating())
 	}
 
 	// Two-footed LB to RB -> 0 penalty
-	pBoth, _ := NewPlayer("p3", "Player 3", PosLB, FootBoth, 80.0, 25, 100.0, new(PosRB))
+	pBoth, _ := NewPlayer("p3", "Player 3", PosLB, FootBoth, 80.0, 25, 100.0, new(PosRB), 90.0)
 	if pBoth.EffectiveRating() != 80.0 {
 		t.Errorf("expected 80.0 for both-footed LB to RB, got %.1f", pBoth.EffectiveRating())
 	}
 
 	// Left-footed LB to RB -> 25% penalty
-	pLeft, _ := NewPlayer("p4", "Player 4", PosLB, FootLeft, 80.0, 25, 100.0, new(PosRB))
+	pLeft, _ := NewPlayer("p4", "Player 4", PosLB, FootLeft, 80.0, 25, 100.0, new(PosRB), 90.0)
 	if pLeft.EffectiveRating() != 60.0 {
 		t.Errorf("expected 60.0 for left-footed LB to RB, got %.1f", pLeft.EffectiveRating())
 	}
@@ -62,7 +65,8 @@ func TestOOPPenalty(t *testing.T) {
 
 func TestHealthDeficit(t *testing.T) {
 	// 90 rating with 75 health -> 65 rating
-	p, err := NewPlayer("p1", "Player 1", PosCM, FootBoth, 90.0, 25, 75.0, nil)
+	p, err := NewPlayer("p1", "Player 1", PosCM, FootBoth, 90.0, 25, 75.0, nil,
+					90.0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

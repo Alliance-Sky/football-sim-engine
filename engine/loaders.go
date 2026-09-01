@@ -20,7 +20,7 @@ func LoadPlayersFromJSON(data []byte) ([]*Player, error) {
 			assigned = &rp.AssignedPosition
 		}
 
-		p, err := NewPlayer(rp.ID, rp.Name, rp.NaturalPosition, rp.Foot, rp.Rating, rp.Age, rp.Health, assigned)
+		p, err := NewPlayer(rp.ID, rp.Name, rp.NaturalPosition, rp.Foot, rp.Rating, rp.Age, rp.Health, assigned, rp.Potential)
 		if err != nil {
 			return nil, fmt.Errorf("failed to validate player %s (%s): %v", rp.Name, rp.ID, err)
 		}

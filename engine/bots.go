@@ -45,7 +45,7 @@ func GenerateBotTeam(id, name string, targetRating float64) *Team {
 			p, _ := NewPlayer(
 				fmt.Sprintf("%s-p%d", id, playerIdx),
 				playerName,
-				pos, FootRight, finalRating, 25, 100.0, nil,
+				pos, FootRight, finalRating, 25, 100.0, nil, 90.0,
 			)
 			p.AssignedPosition = pos
 			players = append(players, p)

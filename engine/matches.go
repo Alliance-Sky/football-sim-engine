@@ -112,6 +112,7 @@ func (m *LeagueMatch) Play() *MatchState {
 
 	state.PlayerStats.RecordCleanSheets(m.Home, m.Away, state.HomeStats.MatchGoalsFor, state.AwayStats.MatchGoalsFor)
 	ApplyPostMatchFatigue(state, m.Home, m.Away)
+	ApplyPostMatchProgression(state, m.Rng)
 	FinalizeClubStats(state)
 	return state
 }
@@ -198,6 +199,7 @@ func (m *CupMatch) Play() *MatchState {
 
 	state.PlayerStats.RecordCleanSheets(m.Home, m.Away, state.HomeStats.MatchGoalsFor, state.AwayStats.MatchGoalsFor)
 	ApplyPostMatchFatigue(state, m.Home, m.Away)
+	ApplyPostMatchProgression(state, m.Rng)
 	FinalizeClubStats(state)
 	return state
 }
@@ -290,4 +292,25 @@ func updateClub(stats *ClubMatchStats, oppStats *ClubMatchStats) {
     stats.PostMatchLosses = team.Losses
     stats.PostMatchGoalsFor = team.GoalsFor
     stats.PostMatchGoalsAgainst = team.GoalsAgainst
+}
+
+// ApplyPostMatchProgression rolls a chance for players to grow towards their potential.
+func ApplyPostMatchProgression(state *MatchState, rng *rand.Rand) {
+	for _, pStats := range state.PlayerStats.Stats {
+		p := pStats.Player
+		if p.Rating < p.Potential {
+			// 10% chance to increase rating by 1.0
+			if rng.Float64() < 0.10 {
+				growth := 1.0
+				if p.Rating+growth > p.Potential {
+					growth = p.Potential - p.Rating
+				}
+				p.Rating += growth
+				
+				entry := state.PlayerStats.GetOrCreate(p)
+				entry.MatchRatingGrowth = growth
+				entry.PostMatchRating = p.Rating
+			}
+		}
+	}
 }

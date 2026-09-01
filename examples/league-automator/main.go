@@ -20,7 +20,7 @@ func createDummyTeam(id, name, formation, kit string, offset int) *engine.Team {
 				fmt.Sprintf("%s Player %d", name, playerIdx),
 				pos, engine.FootRight,
 				float64(80+offset), // Rating varies by offset
-				25, 100.0, new(engine.Position),
+				25, 100.0, new(engine.Position), 90.0,
 			)
 			p.AssignedPosition = pos
 			players = append(players, p)

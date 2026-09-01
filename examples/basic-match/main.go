@@ -25,7 +25,7 @@ func createDummyTeam(id, name, formation, kit string) *engine.Team {
 				85.0,                 // 85 Rating
 				24,                   // 24 Years old
 				100.0,                // 100% Health
-				new(engine.Position), // Use natural position
+				new(engine.Position), 90.0,
 			)
 			// Explicitly assign natural position to assigned position to prevent OOP penalties
 			p.AssignedPosition = pos
