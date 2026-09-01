@@ -1,107 +1,112 @@
 # RPS Football Engine
 
-A high-performance, stateless Go simulation engine engineered specifically for **Multiplayer Football Manager Games** (e.g., Top Eleven, Hattrick).
+![Go Version](https://img.shields.io/github/go-mod/go-version/rps-football-engine/rps-football-engine)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-This engine is designed to be integrated directly into live multiplayer backend architectures. It executes 90-minute matches in under `0.05` seconds, returning a comprehensive "delta payload" (`MatchState`) that can be instantly broadcasted over WebSockets for live frontend animations or persisted directly to your database.
+A high-performance, stateless Go simulation engine engineered specifically for **Multiplayer Football Manager Games** (e.g., Top Eleven, Hattrick, Football Manager).
+
+Designed to be integrated directly into live multiplayer backend architectures, this engine executes full 90-minute matches (including extra time and penalties) in under `0.05` seconds. It returns a comprehensive delta payload (`MatchState`) that can be broadcasted via WebSockets for live frontend animations, or persisted directly to your database.
 
 ---
 
-## ⚡ What the Engine Does Automatically
+## 🚀 Key Features
 
-As a backend developer, your primary responsibility is persisting the data before and after matches. The engine abstracts away all of the complex football simulation math:
+### 1. ⚡ High-Performance Core Engine
+* **Stateless & Tick-Based:** Simulates a match tick-by-tick instantly without side effects, making it entirely thread-safe and perfect for high-throughput backends.
+* **Delta JSON Payloads:** Outputs a cleanly tagged JSON-ready `MatchState` containing play-by-play commentary, post-match statistics (xG, Possession, Shots), and state deltas that can be trivially applied to your database.
+* **Deterministic Mode:** By supplying an RNG seed, you can flawlessly reproduce the exact same match events and outcome every single time—ideal for debugging and replay systems.
 
-### 1. Dynamic Performance Nerfs (Health & Fatigue)
-You pass the player's current health from your database into the match.
-* The engine calculates the health deficit (`100 - CurrentHealth`) and subtracts it directly from the player's Base Rating on every simulation tick.
-* A 90-rated player with 75 Health automatically plays like a 65-rated player for the match duration.
+### 2. 🧠 Advanced Football Logic
+* **Dynamic Performance Nerfs (Health & Fatigue):** Passing a player's health into the simulation subtracts from their rating. A 90-rated player with 75% health dynamically plays like a 65-rated player.
+* **Out-of-Position (OOP) Penalties:** Automatically applies granular rating penalties based on a player's `NaturalPosition` vs `AssignedPosition` (e.g., sector swaps, wrong foot, outfield players in goal).
+* **Tactical Rock-Paper-Scissors (RPS):** Formations fall into categorical advantages (e.g., Aggressive > Control > Counter > Aggressive), conferring statistical edges in-game.
+* **In-Depth Match Resolvers:** Features complex mathematical models for Progression, Creation, and Defensive Shields, dynamically affecting Ball Zones and generating realistic Expected Goals ($xG$).
 
-### 2. Out-of-Position (OOP) Penalties
-You can put any player in any position, but the engine applies granular rating penalties based on their `NaturalPosition` vs `AssignedPosition`:
-* Checks footedness (e.g., a left-footed Left Back swapping to Right Back is penalized, but a both-footed player is not).
-* Sector swaps (Defense to Midfield) are penalized heavily (~35%).
-* Putting outfield players in Goal incurs a massive 50% rating penalty.
+### 3. 🏆 Tournaments & Season Automators
+* **LeagueManager:** Fully automates season scheduling with round-robin fixtures interleaved with a Knockout Cup. Handles standings, goal difference, player season stats, and end-of-season rewards.
+* **TournamentManager (Sit-and-Go):** Manages quick-fire knockout brackets, tracks eliminated teams, automatically handles Two-Legged aggregates, and pairs opponents dynamically.
+* **GroupTournamentManager (World Cup Format):** Orchestrates large-scale Group Stages that mathematically split 32 teams into groups, transitioning the top teams into a 16-team knockout bracket.
+* **Universal Bots:** Generate fully functioning, statistically balanced AI teams dynamically to fill empty tournament slots.
 
-### 3. Tactical RPS (Rock-Paper-Scissors) & Home Advantage
-Formations are grouped into tactical categories (Rock, Paper, Scissors):
-* **Rock (Aggressive)**: 4-2-4, 3-4-3, 4-3-3 Attack
-* **Paper (Balanced / Control)**: 4-2-3-1, 4-3-3 Hold, 3-5-2
-* **Scissors (Counter / Defense)**: 5-3-2, 4-4-2 Flat, 5-4-1
-* **Tactical Edge**: Winning the tactical matchup provides a numerical `Edge` (+1) buffing ball progression into the box and Expected Goals ($xG$).
-* **Home Advantage**: Increases 50/50 loose ball retention and turnover recovery from **50% to 55%**.
+---
 
-### 4. Extra Time & Sudden Death Penalty Shootouts
-* **League Matches (`NewLeagueMatch`)**: 90-minute regulation with draws allowed.
-* **Cup Matches (`NewCupMatch`)**: If tied after 90 minutes, triggers Extra Time (91'-120'). If still tied, executes Best-of-5 penalties followed by round-by-round **Sudden Death** until a winner is determined.
+## 📦 Project Structure
 
-### 5. Mandatory Modular Kit Colors
-Teams require a mandatory non-empty `KitColor` (e.g., hex `#ff6b6b`) with zero engine hardcoding:
-```go
-team, err := NewTeam("t1", "Arsenal", "4-3-3 Attacking", "#f06595", players)
+```text
+football-sim-engine/
+├── engine/              # Core football simulation engine packages
+│   ├── bots.go          # AI Bot and dummy team generation
+│   ├── config.go        # Constants, Formations, and XG configurations
+│   ├── engine.go        # Team & Player data structures, stat aggregations
+│   ├── league.go        # LeagueManager and Season round-robin automators
+│   ├── matches.go       # Match lifecycle, extra time, penalty shootouts
+│   ├── models.go        # Player models, MatchState, and JSON structures
+│   ├── resolvers.go     # Tick-by-tick event logic (Passes, Tackles, Shots)
+│   ├── stats.go         # Play-by-play stats tracking (Goals, Assists)
+│   └── tournament.go    # Knockout & Sit-and-Go bracket management
+└── examples/            # Example scripts demonstrating core integrations
+    ├── basic-match/             # Standard 90-minute match QuickPlay
+    ├── deterministic-match/     # Seeded repeatable matches
+    ├── json-hydration/          # Loading teams from DB JSON
+    ├── league-automator/        # Running a full multi-team season
+    ├── sit-and-go/              # 16-team knockout bracket with bots
+    └── websocket-broadcaster/   # Broadcasting MatchState commentary over WS
 ```
 
-### 6. Canonical Post-Match Statistics Suite
-Immediately after `The Final Whistle!`, the match log records a locked sequence of core statistics:
-1. **Expected Goals (xG)**: Cumulative shot $xG$ based on defensive pressure.
-2. **Possession**: Calculated directly from ticks in possession.
-3. **Shots**: Total attempts on goal.
-4. **Shots On Target (SOT)**: Accurate goal-bound strikes.
-5. **Goalkeeper Saves**: Shots stopped by goalkeepers.
-6. **Duels Won**: Defensive tackles and loose ball recoveries.
-7. **Team Rating**: Historical overall team capability index.
-
-### 7. Delta Payloads & JSON API Ready
-The engine's outputs (`MatchState`, `ClubMatchStats`, `PlayerMatchStats`) are designed as "deltas" easily applied to a database. The engine natively tracks `Matches`, `Wins`, `Draws`, `Losses`, and `HealthLost` per match. Furthermore, all core structs are fully tagged for JSON (`json:"camelCase"`), and the `Commentary` timeline returns an array of `MatchLog` objects (pairing the `Minute` with the `Message`), making it trivial to pipe the simulation output directly into a frontend UI.
-
-### 8. Multiplayer "Live Broadcast" Ready
-Because the engine completes a full match simulation in milliseconds, it is perfectly suited for live multiplayer architectures. Your backend server can simulate a full matchday (e.g., at 00:00 UTC), instantly save the outcome to your database, and then broadcast the resulting JSON `Commentary` array over WebSockets. Tens of thousands of connected mobile/web clients can then receive the payload and animate the match timeline tick-by-tick to create a thrilling "live viewing" experience without stressing your backend servers.
-
 ---
 
-## 🎨 Dedicated Vector SVG Assets (`svg-icons/`)
+## 💻 Getting Started
 
-All match events, scoreboard kits, and post-match stats use dedicated, football-tailored SVG files located in `/svg-icons/`:
+### Installation
 
-* `ball.svg` — Panel-patterned football
-* `counterattack.svg` — Rapid midfield penetration break
-* `save.svg` & `saves.svg` — Goalkeeper padded glove
-* `tackle.svg` — Sliding tackle block
-* `woodwork.svg` — Goal frame & crossbar strike
-* `clearance.svg` — Defensive clearance shield
-* `formation.svg` — Tactical pitch whiteboard layout
-* `kickoff.svg` — Referee match kickoff whistle
-* `final-whistle.svg` — Full-time triple whistle
-* `xg.svg` — Goal frame with analytical $xG$ curve
-* `shots.svg` — Football boot goal strike
-* `shots-on-target.svg` — Ball inside crosshair target
-* `possession.svg` — Ball control pitch quadrant
-* `duels.svg` — 50/50 ground duel
-* `team-rating.svg` — Football club crest badge with star
-* `rock.svg`, `paper.svg`, `scissors.svg` — Tactical formation icons
-* `home-advantage.svg` — Home stadium fortress
-* `kit.svg` — Match jersey outline
-
----
-
-## 💻 Core Developer Tools & Automators
-
-The engine ships with a massive suite of developer tools designed to make building a backend trivial.
-
-### 1. JSON Hydration (Database Loaders)
-Never write a manual `for` loop to build a team again. If you pull raw JSON from your PostgreSQL/MongoDB database, the engine natively deserializes, hydrates, and validates the `*Team` struct in one line:
-```go
-jsonData := []byte(`[{"id": "p1", "name": "B. Saka", "naturalPosition": "RW", "rating": 88, ...}]`)
-arsenal, err := engine.LoadTeamFromJSON("t1", "Arsenal", "4-3-3 Attacking", "#f06595", jsonData)
+```bash
+go get github.com/yourusername/rps-football-engine/engine
 ```
 
-### 2. The LeagueManager (Season Automator)
-The `LeagueManager` handles scheduling, math, points, and standings so you don't have to. It automatically calculates **Points**, **Goal Difference**, **Recent Form (W/D/L)**, and dynamically interleaves **Knockout Cup Matches** into your season!
+### Quick Match Simulation
+
+Using the engine is extremely straightforward. Here is an example of running a basic match:
+
 ```go
-// Natively validate Rating Caps! (0, 0 = no caps). 2 = Double Round Robin.
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"rps-football-engine/engine"
+)
+
+func main() {
+    // 1. Load Teams (or hydrate directly from JSON)
+    homeTeam, _ := engine.NewTeam("t1", "Arsenal", "4-3-3 Attacking", "#f06595", getPlayers())
+    awayTeam, _ := engine.NewTeam("t2", "Chelsea", "4-2-3-1", "#034694", getPlayers())
+    
+    // 2. Play Match (League Match = 90 mins, No Extra Time)
+    matchState, err := engine.QuickPlay(engine.MatchLeague, homeTeam, awayTeam, true) // true = Home Advantage
+    if err != nil {
+        panic(err)
+    }
+    
+    // 3. Print Results or serialize to frontend
+    fmt.Printf("Final Score: %d - %d\n", matchState.HomeStats.GoalsFor, matchState.AwayStats.GoalsFor)
+    
+    // Convert the entire state delta to JSON for your frontend
+    jsonBytes, _ := json.MarshalIndent(matchState, "", "  ")
+    fmt.Println(string(jsonBytes))
+}
+```
+
+---
+
+## 🛠️ Deep Dive: Core Orchestrators
+
+### The League Automator
+
+No more manual looping to build seasons. `LeagueManager` tracks points, goal differences, recent forms, and interleaves knockout cups!
+
+```go
+// 2 = Double Round Robin (Home and Away)
 league, _ := engine.NewLeagueManager(teams, 85.0, 0, 2) 
-
-// The engine natively tracks custom rewards for the winners!
-league.PositionRewards[1] = map[string]int{"Prestige": 1000, "Gold": 5000}
-league.PositionRewards[2] = map[string]int{"Prestige": 500, "Gold": 2000}
 
 for round := 1; round <= len(league.Schedule); round++ {
     matchday := league.GetNextRound()
@@ -111,73 +116,39 @@ for round := 1; round <= len(league.Schedule); round++ {
     }
 }
 
-// Admin Hooks: Show calendars, or manually penalize cheaters!
-upcomingFixtures := league.GetTeamSchedule("juventus-id")
-_ = league.DeductPoints("juventus-id", 15)
-
-// Output the perfectly sorted JSON Leaderboards directly to your frontend!
-pointsTableJSON := league.GetTable()
-goldenBootJSON := league.GetTopScorers(10)
+// Extract JSON leaderboard for your clients
+standingsJSON := league.GetTable()
+topScorersJSON := league.GetTopScorers(10)
 ```
 
-### 3. TournamentManager (Sit-and-Go Tournaments)
-Perfect for replicating classic knockout mechanics with 60-second "ready up" lobbies. It natively supports **Rating Caps**, dynamically pairs surviving teams, and even handles **Two-Legged Aggregate Math**!
+### JSON Hydration (Database Loaders)
+
+Never write manual mappers. If you pull raw JSON from PostgreSQL/MongoDB, the engine natively deserializes, hydrates, and validates the `*Team` struct:
+
 ```go
-// Create a 16-team tournament. True = Two-Legged Aggregate Knockouts!
-tourney, _ := engine.NewTournamentManager("tour-01", "Silver Cup", 16, 80.0, 0, true)
-tourney.WinnerRewards["Gold_Chest"] = 1
-
-tourney.Join(realPlayerTeam) // Dynamically nerfs any 80+ players down to exactly 80.0 for the simulation!
-
-// If the lobby timer expires at 11/16 players, the engine fills the rest with perfectly scaled Bots!
-tourney.StartWithBots() 
-
-// The engine tracks eliminated teams and dynamically generates the bracket
-for {
-    fixtures, _ := tourney.GenerateNextRound()
-    if len(fixtures) == 0 { break }
-    
-    // Simulate the round...
-}
+jsonData := []byte(`[{"id": "p1", "name": "B. Saka", "naturalPosition": "RW", "rating": 88, ...}]`)
+arsenal, err := engine.LoadTeamFromJSON("t1", "Arsenal", "4-3-3 Attacking", "#f06595", jsonData)
 ```
 
-### 4. GroupTournamentManager (World Cup Format)
-The engine provides a massive orchestrator to run Group Stages! It mathematically splits 32 teams into 8 groups, plays a single round-robin, and natively feeds the Top 2 from each group directly into a 16-team `TournamentManager` bracket!
-```go
-// 32 Teams, 4 Teams per Group (Creates 8 Groups: A, B, C, D, E, F, G, H)
-worldCup, _ := engine.NewGroupTournamentManager("wc-01", "World Cup", 32, 4)
+### Multiplayer WebSockets "Live Broadcast"
 
-worldCup.Start() // Shuffles teams and builds the 8 Group Stage leagues
-worldCup.TransitionToKnockouts() // Pulls the Top 2 from each group into the Final Knockout Bracket!
-```
+Because the engine evaluates an entire match essentially instantaneously, it is perfect for live multiplayer. 
 
-### 5. Universal Bot Generation
-If your League or Tournament lobby timer expires before it fills up, the engine can instantly pad your lobby with fully valid AI Teams. These bots pull from a massive dictionary of 200 cities, 200 first names, and 200 last names to feel completely realistic!
-```go
-// Automatically generates completely unique teams (e.g. "Paris Bot FC") 
-// with players strictly tuned to your target rating (e.g. 75.0)
-finalTeams := engine.FillWithBots(joinedTeams, 14, 75.0) 
-league, _ := engine.NewLeagueManager(finalTeams, 0, 0, 2)
-```
-
-### 6. Match Facades (QuickPlay & Deterministic)
-* **`engine.QuickPlay(matchType, home, away, homeAdv)`**: A clean facade that auto-injects an RNG seed and returns the `MatchState` instantly.
-* **`engine.DeterministicPlay(matchType, home, away, homeAdv, seed)`**: Replay classic matches or debug edge cases! If you pass the exact same seed (e.g., `9999`), the engine will perfectly recreate the exact same commentary, events, and scoreline every single time.
-
-### 7. UI Dropdown Helpers
-Building team management screens? The engine exports static arrays for your frontend:
-```go
-formations := engine.GetAvailableFormations() // ["4-3-3 Attacking", "4-2-3-1", ...]
-positions := engine.GetPositions()            // ["GK", "CB", "CM", "ST", ...]
-```
+**Standard Flow:**
+1. Server chron-job fires at 00:00 UTC.
+2. Server runs `engine.QuickPlay(...)` taking `<0.05` seconds.
+3. Server saves the results (`Wins`, `Losses`, `GoalsFor`) to the database immediately.
+4. Server broadcasts the `MatchState.Commentary` array over WebSockets.
+5. Thousands of connected mobile/web clients animate the timeline tick-by-tick, creating a thrilling "live viewing" experience without placing any rendering load on the backend.
 
 ---
 
-## 🚀 Usage
+## 🧪 Testing
 
-Check out the `/examples` directory for 4 standalone, heavily commented scripts demonstrating how to use `QuickPlay`, `DeterministicPlay`, `JSON Hydration`, and the `League Automator`!
+To run the simulation tests and verify the underlying engine's logic, use the standard Go toolchain:
 
-To run the simulation tests and verify the underlying engine's logic:
 ```bash
 go test ./engine/... -v
 ```
+
+*Note: For further integration examples, dive into the `/examples` directory.*
