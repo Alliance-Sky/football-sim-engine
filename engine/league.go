@@ -40,29 +40,35 @@ type PlayerSeasonStats struct {
 	Tackles     int    `json:"tackles"`
 }
 
-// LeagueManager tracks scheduling, team standings, and player statistics for a full season.
-type LeagueManager struct {
-	Teams        []*Team
-	Schedule     [][]Fixture
-	CurrentRound int
-
-	Standings   map[string]*TableStanding
-	PlayerStats map[string]*PlayerSeasonStats
+// ScheduledRound represents a single matchday, which could be either a League matchday or a Cup knockout round.
+type ScheduledRound struct {
+	Type     MatchType
+	Fixtures []Fixture
 }
 
-// NewLeagueManager initializes a new league, builds the standings map, and generates the round-robin schedule.
+// LeagueManager tracks scheduling, team standings, and player statistics for a full season,
+// including an interleaved knockout League Cup competition.
+type LeagueManager struct {
+	Teams        []*Team
+	Schedule     []ScheduledRound
+	CurrentRound int
+
+	Standings     map[string]*TableStanding
+	PlayerStats   map[string]*PlayerSeasonStats
+	CupEliminated map[string]bool
+}
+
+// NewLeagueManager initializes a new league, builds the standings map, and generates the interleaved round-robin and cup schedule.
 func NewLeagueManager(teams []*Team) (*LeagueManager, error) {
 	if len(teams) < 2 {
 		return nil, fmt.Errorf("league requires at least 2 teams")
 	}
-	if len(teams)%2 != 0 {
-		return nil, fmt.Errorf("league requires an even number of teams for scheduling")
-	}
 
 	lm := &LeagueManager{
-		Teams:       teams,
-		Standings:   make(map[string]*TableStanding),
-		PlayerStats: make(map[string]*PlayerSeasonStats),
+		Teams:         teams,
+		Standings:     make(map[string]*TableStanding),
+		PlayerStats:   make(map[string]*PlayerSeasonStats),
+		CupEliminated: make(map[string]bool),
 	}
 
 	for _, t := range teams {
@@ -73,7 +79,7 @@ func NewLeagueManager(teams []*Team) (*LeagueManager, error) {
 		}
 	}
 
-	lm.Schedule = generateRoundRobin(teams)
+	lm.Schedule = buildInterleavedSchedule(teams)
 	return lm, nil
 }
 
@@ -121,62 +127,159 @@ func generateRoundRobin(teams []*Team) [][]Fixture {
 	return schedule
 }
 
-// GetNextRound returns the fixtures for the current round and increments the round counter.
+// buildInterleavedSchedule takes a base round-robin schedule and inserts Cup rounds evenly throughout the season.
+func buildInterleavedSchedule(teams []*Team) []ScheduledRound {
+	leagueFixtures := generateRoundRobin(teams)
+	
+	// Calculate how many cup rounds we need for N teams
+	c := 0
+	if len(teams) > 1 {
+		target := 1
+		for target < len(teams) {
+			target *= 2
+			c++
+		}
+	}
+	
+	l := len(leagueFixtures)
+	var schedule []ScheduledRound
+	
+	spacing := l / c
+	if spacing == 0 {
+		spacing = 1
+	}
+	
+	leagueIdx := 0
+	cupIdx := 0
+	
+	for leagueIdx < l {
+		schedule = append(schedule, ScheduledRound{Type: MatchLeague, Fixtures: leagueFixtures[leagueIdx]})
+		leagueIdx++
+		
+		if leagueIdx%spacing == 0 && cupIdx < c {
+			schedule = append(schedule, ScheduledRound{Type: MatchCup}) // Fixtures are generated dynamically at runtime
+			cupIdx++
+		}
+	}
+	for cupIdx < c {
+		schedule = append(schedule, ScheduledRound{Type: MatchCup})
+		cupIdx++
+	}
+	
+	return schedule
+}
+
+// GetNextRound returns the fixtures and match type for the current round and increments the round counter.
 // Returns nil if the season is completely finished.
-func (lm *LeagueManager) GetNextRound() []Fixture {
+func (lm *LeagueManager) GetNextRound() *ScheduledRound {
 	if lm.CurrentRound >= len(lm.Schedule) {
 		return nil // Season over
 	}
-	fixtures := lm.Schedule[lm.CurrentRound]
+	
+	round := &lm.Schedule[lm.CurrentRound]
 	lm.CurrentRound++
+	
+	if round.Type == MatchCup {
+		round.Fixtures = lm.generateCupFixtures()
+	}
+	
+	return round
+}
+
+// generateCupFixtures dynamically pairs surviving cup teams to play the next knockout round.
+func (lm *LeagueManager) generateCupFixtures() []Fixture {
+	var active []*Team
+	for _, t := range lm.Teams {
+		if !lm.CupEliminated[t.ID] {
+			active = append(active, t)
+		}
+	}
+
+	if len(active) <= 1 {
+		return nil
+	}
+
+	target := 1
+	for target*2 <= len(active) {
+		target *= 2
+	}
+
+	var fixtures []Fixture
+	if len(active) == target {
+		// Perfect power of 2. Everyone plays.
+		for i := 0; i < len(active); i += 2 {
+			fixtures = append(fixtures, Fixture{Home: active[i], Away: active[i+1]})
+		}
+	} else {
+		// Prelim round to trim down to the next power of 2
+		matchesNeeded := len(active) - target
+		for i := 0; i < matchesNeeded*2; i += 2 {
+			fixtures = append(fixtures, Fixture{Home: active[i], Away: active[i+1]})
+		}
+	}
+
 	return fixtures
 }
 
-// RecordMatch reads a MatchState payload and permanently records the results to the league tables.
+// RecordMatch reads a MatchState payload and permanently records the results.
+// For League matches, it updates the standings. For Cup matches, it eliminates the loser.
+// For both, it accumulates Player Season Stats.
 func (lm *LeagueManager) RecordMatch(state *MatchState) {
-	// Update Home Team Standings
-	homeS := lm.Standings[state.HomeStats.Team.ID]
-	if homeS != nil {
-		homeS.Played++
-		homeS.Wins += state.HomeStats.Wins
-		homeS.Draws += state.HomeStats.Draws
-		homeS.Losses += state.HomeStats.Losses
-		homeS.GoalsFor += state.HomeStats.GoalsFor
-		homeS.GoalsAgainst += state.HomeStats.GoalsAgainst
-		homeS.GoalDifference = homeS.GoalsFor - homeS.GoalsAgainst
-		homeS.Points += (state.HomeStats.Wins * 3) + (state.HomeStats.Draws * 1)
-		
-		if state.HomeStats.Wins == 1 {
-			pushForm(homeS, "W")
-		} else if state.HomeStats.Draws == 1 {
-			pushForm(homeS, "D")
-		} else {
-			pushForm(homeS, "L")
+	if state.MatchType == MatchLeague {
+		// Update Home Team Standings
+		homeS := lm.Standings[state.HomeStats.Team.ID]
+		if homeS != nil {
+			homeS.Played++
+			homeS.Wins += state.HomeStats.Wins
+			homeS.Draws += state.HomeStats.Draws
+			homeS.Losses += state.HomeStats.Losses
+			homeS.GoalsFor += state.HomeStats.GoalsFor
+			homeS.GoalsAgainst += state.HomeStats.GoalsAgainst
+			homeS.GoalDifference = homeS.GoalsFor - homeS.GoalsAgainst
+			homeS.Points += (state.HomeStats.Wins * 3) + (state.HomeStats.Draws * 1)
+			
+			if state.HomeStats.Wins == 1 {
+				pushForm(homeS, "W")
+			} else if state.HomeStats.Draws == 1 {
+				pushForm(homeS, "D")
+			} else {
+				pushForm(homeS, "L")
+			}
 		}
+
+		// Update Away Team Standings
+		awayS := lm.Standings[state.AwayStats.Team.ID]
+		if awayS != nil {
+			awayS.Played++
+			awayS.Wins += state.AwayStats.Wins
+			awayS.Draws += state.AwayStats.Draws
+			awayS.Losses += state.AwayStats.Losses
+			awayS.GoalsFor += state.AwayStats.GoalsFor
+			awayS.GoalsAgainst += state.AwayStats.GoalsAgainst
+			awayS.GoalDifference = awayS.GoalsFor - awayS.GoalsAgainst
+			awayS.Points += (state.AwayStats.Wins * 3) + (state.AwayStats.Draws * 1)
+			
+			if state.AwayStats.Wins == 1 {
+				pushForm(awayS, "W")
+			} else if state.AwayStats.Draws == 1 {
+				pushForm(awayS, "D")
+			} else {
+				pushForm(awayS, "L")
+			}
+		}
+	} else if state.MatchType == MatchCup {
+		loser := state.HomeStats.Team.ID
+		if state.Winner != nil && *state.Winner == "Home" {
+			loser = state.AwayStats.Team.ID
+		} else if state.Winner != nil && *state.Winner == "Away" {
+			loser = state.HomeStats.Team.ID
+		} else if state.HomeStats.GoalsFor > state.AwayStats.GoalsFor {
+			loser = state.AwayStats.Team.ID // Fallback check
+		}
+		lm.CupEliminated[loser] = true
 	}
 
-	// Update Away Team Standings
-	awayS := lm.Standings[state.AwayStats.Team.ID]
-	if awayS != nil {
-		awayS.Played++
-		awayS.Wins += state.AwayStats.Wins
-		awayS.Draws += state.AwayStats.Draws
-		awayS.Losses += state.AwayStats.Losses
-		awayS.GoalsFor += state.AwayStats.GoalsFor
-		awayS.GoalsAgainst += state.AwayStats.GoalsAgainst
-		awayS.GoalDifference = awayS.GoalsFor - awayS.GoalsAgainst
-		awayS.Points += (state.AwayStats.Wins * 3) + (state.AwayStats.Draws * 1)
-		
-		if state.AwayStats.Wins == 1 {
-			pushForm(awayS, "W")
-		} else if state.AwayStats.Draws == 1 {
-			pushForm(awayS, "D")
-		} else {
-			pushForm(awayS, "L")
-		}
-	}
-
-	// Update Player Statistics
+	// Update Player Statistics (Counts for ALL competitions)
 	for _, pStats := range state.PlayerStats.Stats {
 		if pStats.Appearances == 0 {
 			continue
@@ -187,9 +290,9 @@ func (lm *LeagueManager) RecordMatch(state *MatchState) {
 		if !exists {
 			// Find which team the player belongs to (Home or Away)
 			teamID, teamName := "", ""
-			if homeS != nil && belongsTo(pStats.Player.ID, state.HomeStats.Team) {
+			if belongsTo(pStats.Player.ID, state.HomeStats.Team) {
 				teamID, teamName = state.HomeStats.Team.ID, state.HomeStats.Team.Name
-			} else if awayS != nil && belongsTo(pStats.Player.ID, state.AwayStats.Team) {
+			} else if belongsTo(pStats.Player.ID, state.AwayStats.Team) {
 				teamID, teamName = state.AwayStats.Team.ID, state.AwayStats.Team.Name
 			}
 

@@ -53,13 +53,20 @@ func main() {
 
 	// 3. Simulate the entire season
 	for round := 1; round <= len(league.Schedule); round++ {
-		fixtures := league.GetNextRound()
-		for _, f := range fixtures {
-			// Simulate the match
-			state, _ := engine.QuickPlay(engine.MatchLeague, f.Home, f.Away, true)
+		r := league.GetNextRound()
+		
+		fmt.Printf("Playing Matchday %d (%s) - %d fixtures\n", round, r.Type, len(r.Fixtures))
+		
+		for _, f := range r.Fixtures {
+			// Simulate the match (Automatically applies Cup logic like Extra Time if needed)
+			state, _ := engine.QuickPlay(r.Type, f.Home, f.Away, true)
 			
 			// Feed the result back into the league manager!
 			league.RecordMatch(state)
+			
+			if r.Type == engine.MatchCup {
+				fmt.Printf("  🏆 CUP RESULT: %s %d - %d %s (Winner: %v)\n", f.Home.Name, state.HomeStats.GoalsFor, state.AwayStats.GoalsFor, f.Away.Name, *state.Winner)
+			}
 		}
 	}
 
