@@ -25,10 +25,8 @@ func main() {
 	_ = tourney.Join(realTeam1)
 	
 	realTeam2 := createRealTeam("t2", "Too Good FC", 85.0) // This team has 85 rated players
-	err := tourney.Join(realTeam2)
-	if err != nil {
-		fmt.Printf("❌ Too Good FC was rejected: %v\n", err)
-	}
+	_ = tourney.Join(realTeam2)
+	fmt.Printf("⚠️ Too Good FC joined with 85 OVR. The engine dynamically nerfed them to 80.0!\n")
 
 	realTeam3 := createRealTeam("t3", "Underdog FC", 70.0)
 	_ = tourney.Join(realTeam3)

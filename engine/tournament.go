@@ -49,22 +49,16 @@ func NewTournamentManager(id, name string, maxParticipants int, maxPlayerRating,
 	}
 }
 
-// Join attempts to add a real player's team to the tournament, enforcing rating caps.
+// Join attempts to add a real player's team to the tournament, applying internal simulation caps if needed.
 func (tm *TournamentManager) Join(team *Team) error {
 	if len(tm.Participants) >= tm.MaxParticipants {
 		return fmt.Errorf("tournament is already full")
 	}
 
-	if tm.MaxTeamRating > 0 && team.OverallRating() > tm.MaxTeamRating {
-		return fmt.Errorf("team overall rating %.1f exceeds tournament limit %.1f", team.OverallRating(), tm.MaxTeamRating)
-	}
-
+	// Dynamically nerf players for the simulation instead of rejecting them
 	if tm.MaxPlayerRating > 0 {
-		for _, p := range team.Players {
-			if p.Rating > tm.MaxPlayerRating {
-				return fmt.Errorf("player %s rating %.1f exceeds tournament limit %.1f", p.Name, p.Rating, tm.MaxPlayerRating)
-			}
-		}
+		cap := tm.MaxPlayerRating
+		team.SetRatingCap(&cap)
 	}
 
 	tm.Participants = append(tm.Participants, team)

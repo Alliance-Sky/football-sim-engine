@@ -122,7 +122,7 @@ Perfect for replicating classic knockout mechanics with 60-second "ready up" lob
 tourney := engine.NewTournamentManager("tour-01", "Silver Cup", 16, 80.0, 0)
 tourney.WinnerRewards["Gold_Chest"] = 1
 
-tourney.Join(realPlayerTeam) // Validates that no player exceeds the 80.0 rating cap!
+tourney.Join(realPlayerTeam) // Dynamically nerfs any 80+ players down to exactly 80.0 for the simulation!
 
 // If the lobby timer expires at 11/16 players, the engine fills the rest with perfectly scaled Bots!
 tourney.StartWithBots() 
