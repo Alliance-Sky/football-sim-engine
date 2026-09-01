@@ -56,8 +56,8 @@ type LeagueManager struct {
 	MaxPlayerRating float64 // Optional cap (0 = no limit)
 	MaxTeamRating   float64 // Optional cap (0 = no limit)
 
-	ChampionRewards map[string]int // Optional: e.g. {"Prestige": 1000, "Coins": 5000}
-	RunnerUpRewards map[string]int // Optional: e.g. {"Prestige": 500, "Coins": 2000}
+	// PositionRewards map leaderboard rank (1, 2, 3...) to a dictionary of custom prizes
+	PositionRewards map[int]map[string]int
 
 	Standings     map[string]*TableStanding
 	PlayerStats   map[string]*PlayerSeasonStats
@@ -66,7 +66,7 @@ type LeagueManager struct {
 
 // NewLeagueManager initializes a new league, builds the standings map, and generates the interleaved round-robin and cup schedule.
 // If maxPlayerRating is > 0, it dynamically caps all players in the simulation.
-func NewLeagueManager(teams []*Team, maxPlayerRating, maxTeamRating float64) (*LeagueManager, error) {
+func NewLeagueManager(teams []*Team, maxPlayerRating, maxTeamRating float64, doubleRoundRobin bool) (*LeagueManager, error) {
 	if len(teams) < 2 {
 		return nil, fmt.Errorf("league requires at least 2 teams")
 	}
@@ -83,8 +83,7 @@ func NewLeagueManager(teams []*Team, maxPlayerRating, maxTeamRating float64) (*L
 		Teams:           teams,
 		MaxPlayerRating: maxPlayerRating,
 		MaxTeamRating:   maxTeamRating,
-		ChampionRewards: make(map[string]int),
-		RunnerUpRewards: make(map[string]int),
+		PositionRewards: make(map[int]map[string]int),
 		Standings:       make(map[string]*TableStanding),
 		PlayerStats:     make(map[string]*PlayerSeasonStats),
 		CupEliminated:   make(map[string]bool),
@@ -98,15 +97,20 @@ func NewLeagueManager(teams []*Team, maxPlayerRating, maxTeamRating float64) (*L
 		}
 	}
 
-	lm.Schedule = buildInterleavedSchedule(teams)
+	lm.Schedule = buildInterleavedSchedule(teams, doubleRoundRobin)
 	return lm, nil
 }
 
 // generateRoundRobin uses the standard circle method to generate a full home-and-away schedule.
-func generateRoundRobin(teams []*Team) [][]Fixture {
+func generateRoundRobin(teams []*Team, double bool) [][]Fixture {
 	n := len(teams)
 	halfRounds := n - 1
-	rounds := halfRounds * 2
+	
+	rounds := halfRounds
+	if double {
+		rounds = halfRounds * 2
+	}
+
 	schedule := make([][]Fixture, rounds)
 	
 	t := make([]*Team, n)
@@ -134,21 +138,23 @@ func generateRoundRobin(teams []*Team) [][]Fixture {
 		t[1] = last
 	}
 	
-	// Generate the reverse fixtures for the second half of the season
-	for round := 0; round < halfRounds; round++ {
-		var reverseFixtures []Fixture
-		for _, f := range schedule[round] {
-			reverseFixtures = append(reverseFixtures, Fixture{Home: f.Away, Away: f.Home})
+	// Generate the reverse fixtures for the second half of the season if double
+	if double {
+		for round := 0; round < halfRounds; round++ {
+			var reverseFixtures []Fixture
+			for _, f := range schedule[round] {
+				reverseFixtures = append(reverseFixtures, Fixture{Home: f.Away, Away: f.Home})
+			}
+			schedule[halfRounds+round] = reverseFixtures
 		}
-		schedule[halfRounds+round] = reverseFixtures
 	}
 	
 	return schedule
 }
 
 // buildInterleavedSchedule takes a base round-robin schedule and inserts Cup rounds evenly throughout the season.
-func buildInterleavedSchedule(teams []*Team) []ScheduledRound {
-	leagueFixtures := generateRoundRobin(teams)
+func buildInterleavedSchedule(teams []*Team, double bool) []ScheduledRound {
+	leagueFixtures := generateRoundRobin(teams, double)
 	
 	// Calculate how many cup rounds we need for N teams
 	c := 0
