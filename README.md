@@ -98,11 +98,11 @@ The `LeagueManager` handles scheduling, math, points, and standings so you don't
 ```go
 league, _ := engine.NewLeagueManager(teams) // Natively schedules all 380 matches + Knockout Cup
 
+// The engine natively tracks custom rewards for the winners!
+league.ChampionRewards["Prestige"] = 1000
+
 for round := 1; round <= len(league.Schedule); round++ {
-    // 1. Get today's fixtures (Automatically knows if it's League or Cup)
     matchday := league.GetNextRound()
-    
-    // 2. Play them (Developers control the clock. Do this in a loop, or on a daily Cron job!)
     for _, fixture := range matchday.Fixtures {
         state, _ := engine.QuickPlay(matchday.Type, fixture.Home, fixture.Away, true)
         league.RecordMatch(state)
@@ -112,14 +112,38 @@ for round := 1; round <= len(league.Schedule); round++ {
 // 3. Output the perfectly sorted JSON Leaderboards directly to your frontend!
 pointsTableJSON := league.GetTable()
 goldenBootJSON := league.GetTopScorers(10)
-goldenGloveJSON := league.GetTopCleanSheets(5)
 ```
 
-### 3. Match Facades (QuickPlay & Deterministic)
+### 3. TournamentManager (Sit-and-Go Tournaments)
+Perfect for replicating classic knockout mechanics with 60-second "ready up" lobbies. It natively supports **Rating Caps**, dynamically pairs surviving teams, and automatically backfills dead lobbies with **AI Bots** (named cleanly like `"Sydney Bot FC"`). 
+```go
+// Create a 16-team tournament with a U-80 Player Rating Cap
+tourney := engine.NewTournamentManager("tour-01", "Silver Cup", 16, 80.0, 0)
+tourney.WinnerRewards["Gold_Chest"] = 1
+
+tourney.Join(realPlayerTeam) // Validates that no player exceeds the 80.0 rating cap!
+
+// If the lobby timer expires at 11/16 players, the engine fills the rest with perfectly scaled Bots!
+tourney.StartWithBots() 
+
+// The engine tracks eliminated teams and dynamically generates the bracket
+for {
+    fixtures, _ := tourney.GenerateNextRound()
+    if len(fixtures) == 0 { break }
+    
+    // Simulate the round...
+}
+
+// Hook into the final results
+winnerID := tourney.GetWinnerID()
+rewards := tourney.WinnerRewards
+```
+
+### 4. Match Facades (QuickPlay & Deterministic)
 * **`engine.QuickPlay(matchType, home, away, homeAdv)`**: A clean facade that auto-injects an RNG seed and returns the `MatchState` instantly.
 * **`engine.DeterministicPlay(matchType, home, away, homeAdv, seed)`**: Replay classic matches or debug edge cases! If you pass the exact same seed (e.g., `9999`), the engine will perfectly recreate the exact same commentary, events, and scoreline every single time.
 
-### 4. UI Dropdown Helpers
+### 5. UI Dropdown Helpers
 Building team management screens? The engine exports static arrays for your frontend:
 ```go
 formations := engine.GetAvailableFormations() // ["4-3-3 Attacking", "4-2-3-1", ...]

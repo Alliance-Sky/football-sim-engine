@@ -71,14 +71,6 @@ func (tm *TournamentManager) Join(team *Team) error {
 	return nil
 }
 
-var botCities = []string{
-	"London", "Berlin", "Paris", "Madrid", "Rome",
-	"Tokyo", "New York", "Sydney", "Rio", "Cairo",
-	"Seoul", "Mexico City", "Mumbai", "Jakarta", "Lagos",
-	"Toronto", "Dubai", "Istanbul", "Moscow", "Bangkok",
-	"Beijing", "Amsterdam", "Dublin", "Vienna", "Lisbon",
-}
-
 // StartWithBots generates AI teams to fill any remaining empty slots so the tournament can begin on schedule.
 func (tm *TournamentManager) StartWithBots() error {
 	needed := tm.MaxParticipants - len(tm.Participants)
@@ -93,7 +85,7 @@ func (tm *TournamentManager) StartWithBots() error {
 		}
 
 		// Pick a city name, avoiding duplicates where possible
-		city := botCities[i%len(botCities)]
+		city := BotCities[i%len(BotCities)]
 		botName := fmt.Sprintf("%s Bot FC", city)
 
 		botTeam := GenerateBotTeam(fmt.Sprintf("%s-bot-%d", tm.ID, i+1), botName, botRating)
@@ -110,33 +102,6 @@ func (tm *TournamentManager) StartWithBots() error {
 	})
 
 	return nil
-}
-
-// GenerateBotTeam is a helper that generates a perfectly valid AI team at a specific target rating.
-func GenerateBotTeam(id, name string, targetRating float64) *Team {
-	formation := "4-4-2 Flat"
-	slots := FormationSlots[formation]
-	var players []*Player
-	playerIdx := 1
-
-	for pos, count := range slots {
-		for i := 0; i < count; i++ {
-			// Add slight randomness (-2 to +2) to bot ratings
-			fuzz := (rand.Float64() * 4) - 2
-			finalRating := targetRating + fuzz
-
-			p, _ := NewPlayer(
-				fmt.Sprintf("%s-p%d", id, playerIdx),
-				fmt.Sprintf("%s Player %d", name, playerIdx),
-				pos, FootRight, finalRating, 25, 100.0, nil,
-			)
-			p.AssignedPosition = pos
-			players = append(players, p)
-			playerIdx++
-		}
-	}
-	t, _ := NewTeam(id, name, formation, "#cccccc", players)
-	return t
 }
 
 // GenerateNextRound dynamically pairs the surviving teams for the next round of fixtures.

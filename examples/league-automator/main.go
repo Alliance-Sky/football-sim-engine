@@ -35,15 +35,14 @@ func createDummyTeam(id, name, formation, kit string, offset int) *engine.Team {
 func main() {
 	fmt.Println("🚀 Initializing League Automator...")
 
-	// 1. Create 4 Teams for a mini-league
-	teams := []*engine.Team{
-		createDummyTeam("t1", "Arsenal", "4-3-3 Attacking", "#ff0000", 8), // Strongest
-		createDummyTeam("t2", "Man City", "4-2-3-1", "#0000ff", 7),
-		createDummyTeam("t3", "Liverpool", "4-3-3 Attacking", "#00ff00", 6),
-		createDummyTeam("t4", "Chelsea", "3-5-2", "#000000", 5), // Weakest
-	}
+	// Let's pretend only 2 real players joined a 4-team league. 
+	// We will fill the rest with Bots!
+	arsenal := createDummyTeam("t1", "Arsenal", "4-3-3 Attacking", "#ff0000", 8)
+	manCity := createDummyTeam("t2", "Man City", "4-2-3-1", "#0000ff", 7)
+	teams := []*engine.Team{arsenal, manCity}
+	teams = engine.FillWithBots(teams, 4, 75.0)
 
-	// 2. Initialize the League Manager
+	// 2. Initialize the League Automator
 	league, err := engine.NewLeagueManager(teams)
 	if err != nil {
 		log.Fatalf("Failed to create league: %v", err)
