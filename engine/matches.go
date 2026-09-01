@@ -217,3 +217,22 @@ func LogPostMatchStats(state *MatchState) {
 	state.Log(fmt.Sprintf("Duels Won: %d : %d", state.HomeStats.Tackles, state.AwayStats.Tackles))
 	state.Log(fmt.Sprintf("Team Rating: %.0f : %.0f", state.HomeStats.TeamRating, state.AwayStats.TeamRating))
 }
+
+// QuickPlay is a developer-friendly facade that automatically initializes and plays a match.
+// It handles RNG injection and returns the completed MatchState delta payload.
+func QuickPlay(matchType MatchType, home, away *Team, homeAdv bool) (*MatchState, error) {
+	if matchType == MatchLeague {
+		match, err := NewLeagueMatch(home, away, homeAdv, true) // verbose=true to generate commentary logs
+		if err != nil {
+			return nil, err
+		}
+		return match.Play(), nil
+	} else if matchType == MatchCup {
+		match, err := NewCupMatch(home, away, homeAdv, true)
+		if err != nil {
+			return nil, err
+		}
+		return match.Play(), nil
+	}
+	return nil, fmt.Errorf("invalid match type: %s", matchType)
+}
