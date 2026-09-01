@@ -53,6 +53,9 @@ type LeagueManager struct {
 	Schedule     []ScheduledRound
 	CurrentRound int
 
+	ChampionRewards map[string]int // Optional: e.g. {"Prestige": 1000, "Coins": 5000}
+	RunnerUpRewards map[string]int // Optional: e.g. {"Prestige": 500, "Coins": 2000}
+
 	Standings     map[string]*TableStanding
 	PlayerStats   map[string]*PlayerSeasonStats
 	CupEliminated map[string]bool
@@ -65,10 +68,12 @@ func NewLeagueManager(teams []*Team) (*LeagueManager, error) {
 	}
 
 	lm := &LeagueManager{
-		Teams:         teams,
-		Standings:     make(map[string]*TableStanding),
-		PlayerStats:   make(map[string]*PlayerSeasonStats),
-		CupEliminated: make(map[string]bool),
+		Teams:           teams,
+		ChampionRewards: make(map[string]int),
+		RunnerUpRewards: make(map[string]int),
+		Standings:       make(map[string]*TableStanding),
+		PlayerStats:     make(map[string]*PlayerSeasonStats),
+		CupEliminated:   make(map[string]bool),
 	}
 
 	for _, t := range teams {
@@ -398,7 +403,7 @@ func (lm *LeagueManager) GetTopCleanSheets(limit int) []PlayerSeasonStats {
 	return list
 }
 
-// GetTopDefenders returns the top defensive players sorted by Tackles won.
+// GetTopDefenders returns the top tacklers in the league.
 func (lm *LeagueManager) GetTopDefenders(limit int) []PlayerSeasonStats {
 	var list []PlayerSeasonStats
 	for _, p := range lm.PlayerStats {
@@ -411,4 +416,22 @@ func (lm *LeagueManager) GetTopDefenders(limit int) []PlayerSeasonStats {
 		return list[:limit]
 	}
 	return list
+}
+
+// GetChampionID safely returns the team ID of the 1st place team.
+func (lm *LeagueManager) GetChampionID() string {
+	table := lm.GetTable()
+	if len(table) > 0 {
+		return table[0].TeamID
+	}
+	return ""
+}
+
+// GetRunnerUpID safely returns the team ID of the 2nd place team.
+func (lm *LeagueManager) GetRunnerUpID() string {
+	table := lm.GetTable()
+	if len(table) > 1 {
+		return table[1].TeamID
+	}
+	return ""
 }

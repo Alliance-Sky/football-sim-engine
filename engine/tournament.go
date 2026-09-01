@@ -15,6 +15,9 @@ type TournamentManager struct {
 	MaxPlayerRating float64 // Optional cap on individual player ratings (0 = no limit)
 	MaxTeamRating   float64 // Optional cap on overall team rating (0 = no limit)
 
+	WinnerRewards   map[string]int // Optional: e.g. {"Prestige": 100, "Coins": 500}
+	RunnerUpRewards map[string]int // Optional: e.g. {"Prestige": 50, "Coins": 200}
+
 	Participants []*Team
 	ActiveTeams  []*Team
 	Eliminated   map[string]bool
@@ -36,6 +39,8 @@ func NewTournamentManager(id, name string, maxParticipants int, maxPlayerRating,
 		MaxParticipants: maxParticipants,
 		MaxPlayerRating: maxPlayerRating,
 		MaxTeamRating:   maxTeamRating,
+		WinnerRewards:   make(map[string]int),
+		RunnerUpRewards: make(map[string]int),
 		Participants:    make([]*Team, 0),
 		ActiveTeams:     make([]*Team, 0),
 		Eliminated:      make(map[string]bool),
@@ -252,4 +257,20 @@ func (tm *TournamentManager) GetTopScorers(limit int) []PlayerSeasonStats {
 		return list[:limit]
 	}
 	return list
+}
+
+// GetWinnerID safely returns the team ID of the Tournament Winner, or empty string if not finished.
+func (tm *TournamentManager) GetWinnerID() string {
+	if tm.Winner != nil {
+		return tm.Winner.ID
+	}
+	return ""
+}
+
+// GetRunnerUpID safely returns the team ID of the Tournament Runner-Up, or empty string if not finished.
+func (tm *TournamentManager) GetRunnerUpID() string {
+	if tm.RunnerUp != nil {
+		return tm.RunnerUp.ID
+	}
+	return ""
 }
