@@ -23,6 +23,13 @@ const (
 	PosRW Position = "RW"
 )
 
+// GetPositions returns a slice containing all valid on-pitch positions.
+func GetPositions() []Position {
+	return []Position{
+		PosGK, PosLB, PosCB, PosRB, PosDM, PosCM, PosLM, PosRM, PosLW, PosST, PosRW,
+	}
+}
+
 // Helper methods to categorize positions.
 func (p Position) IsGoalkeeper() bool   { return p == PosGK }
 func (p Position) IsCenterBack() bool   { return p == PosCB }

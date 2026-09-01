@@ -3,6 +3,7 @@ package engine
 
 import (
 	"fmt"
+	"sort"
 )
 
 // Foot represents the preferred foot of a player.
@@ -66,6 +67,16 @@ var Formations = map[string]string{
 	"5-3-2":           "Scissors",
 	"4-4-2 Flat":      "Scissors",
 	"5-4-1":           "Scissors",
+}
+
+// GetAvailableFormations returns a sorted list of all valid formation strings.
+func GetAvailableFormations() []string {
+	var list []string
+	for f := range Formations {
+		list = append(list, f)
+	}
+	sort.Strings(list)
+	return list
 }
 
 // FormationSlots defines the required number of players at each position for a given formation.
