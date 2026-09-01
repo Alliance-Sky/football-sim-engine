@@ -119,7 +119,7 @@ goldenBootJSON := league.GetTopScorers(10)
 Perfect for replicating classic knockout mechanics with 60-second "ready up" lobbies. It natively supports **Rating Caps**, dynamically pairs surviving teams, and automatically handles prize resolution.
 ```go
 // Create a 16-team tournament with a U-80 Player Rating Cap
-tourney := engine.NewTournamentManager("tour-01", "Silver Cup", 16, 80.0, 0)
+tourney, _ := engine.NewTournamentManager("tour-01", "Silver Cup", 16, 80.0, 0)
 tourney.WinnerRewards["Gold_Chest"] = 1
 
 tourney.Join(realPlayerTeam) // Dynamically nerfs any 80+ players down to exactly 80.0 for the simulation!

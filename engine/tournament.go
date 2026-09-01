@@ -32,7 +32,12 @@ type TournamentManager struct {
 }
 
 // NewTournamentManager initializes a custom scheduled tournament.
-func NewTournamentManager(id, name string, maxParticipants int, maxPlayerRating, maxTeamRating float64) *TournamentManager {
+// MaxParticipants must be an even number (2, 4, 8, 16, etc).
+func NewTournamentManager(id, name string, maxParticipants int, maxPlayerRating, maxTeamRating float64) (*TournamentManager, error) {
+	if maxParticipants < 2 || maxParticipants%2 != 0 {
+		return nil, fmt.Errorf("tournament MaxParticipants must be an even number (2, 4, 6, 8, etc)")
+	}
+
 	return &TournamentManager{
 		ID:              id,
 		Name:            name,
@@ -46,7 +51,7 @@ func NewTournamentManager(id, name string, maxParticipants int, maxPlayerRating,
 		Eliminated:      make(map[string]bool),
 		PlayerStats:     make(map[string]*PlayerSeasonStats),
 		rng:             rand.New(rand.NewSource(time.Now().UnixNano())),
-	}
+	}, nil
 }
 
 // Join attempts to add a real player's team to the tournament, applying internal simulation caps if needed.

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"rps-football-engine/engine"
 )
@@ -16,7 +17,10 @@ func main() {
 	fmt.Println("🚀 Starting Sit-and-Go Tournament (U-80 Rating Cap)")
 
 	// 1. Create a 16-player tournament with an 80.0 Player Rating Cap
-	tourney := engine.NewTournamentManager("tour-001", "Silver Cup", 16, 80.0, 0)
+	tourney, err := engine.NewTournamentManager("tour-001", "Silver Cup", 16, 80.0, 0)
+	if err != nil {
+		log.Fatalf("Failed to create tournament: %v", err)
+	}
 
 	// 2. Real Players join the lobby
 	fmt.Println("⏳ Waiting for players to join...")
