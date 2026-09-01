@@ -71,9 +71,12 @@ func (tm *TournamentManager) StartWithBots() error {
 	needed := tm.MaxParticipants - len(tm.Participants)
 
 	for i := 0; i < needed; i++ {
-		botRating := tm.MaxPlayerRating
-		if botRating == 0 || botRating > 85 {
-			botRating = 80 // Default balanced bot if no strict cap
+		botRating := 60.0 // Default to 60 if no cap exists
+		
+		if tm.MaxPlayerRating > 0 {
+			botRating = tm.MaxPlayerRating - 10.0
+		} else if tm.MaxTeamRating > 0 {
+			botRating = tm.MaxTeamRating - 10.0
 		}
 
 		botTeam := GenerateBotTeam(fmt.Sprintf("%s-bot-%d", tm.ID, i+1), fmt.Sprintf("Bot FC %d", i+1), botRating)
