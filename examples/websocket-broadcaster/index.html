@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Football Broadcast</title>
+    <style>
+        body { font-family: monospace; background: #111; color: #fff; padding: 20px; }
+        #log {
+            background: #222;
+            padding: 15px;
+            border-radius: 5px;
+            height: 500px;
+            overflow-y: scroll;
+            border: 1px solid #444;
+        }
+        .event { margin-bottom: 5px; }
+        .minute { color: #f06595; font-weight: bold; }
+        .message { color: #ddd; }
+        .goal { color: #51cf66; font-weight: bold; font-size: 1.1em; }
+        .shot { color: #fcc419; }
+        .save { color: #339af0; }
+        .title { color: #fff; }
+    </style>
+</head>
+<body>
+    <h1 class="title">🔴 LIVE: Real Madrid vs Barcelona</h1>
+    <button onclick="startMatch()" style="padding:10px 20px; margin-bottom: 20px; cursor: pointer;">Start Simulation</button>
+    
+    <div id="log">
+        <div class="event" style="color: #888;">Waiting for match to start...</div>
+    </div>
+
+    <script>
+        function startMatch() {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML = '<div class="event" style="color: #888;">Connecting to stadium...</div>';
+            
+            // Connect to our WebSocket server
+            const ws = new WebSocket(`ws://${window.location.host}/ws`);
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                const el = document.createElement('div');
+                el.className = 'event';
+                
+                // Style based on engine LogType
+                let textClass = "message";
+                if (data.type === "goal") textClass = "goal";
+                if (data.type === "shot") textClass = "shot";
+                if (data.type === "save") textClass = "save";
+                
+                el.innerHTML = `<span class="minute">[${data.minute}']</span> <span class="${textClass}">${data.message}</span>`;
+                logDiv.appendChild(el);
+                
+                // Auto-scroll to bottom
+                logDiv.scrollTop = logDiv.scrollHeight;
+            };
+            
+            ws.onclose = () => {
+                const el = document.createElement('div');
+                el.innerHTML = `<br/><span style="color: #f06595; font-weight: bold;">BROADCAST ENDED.</span>`;
+                logDiv.appendChild(el);
+                logDiv.scrollTop = logDiv.scrollHeight;
+            };
+        }
+    </script>
+</body>
+</html>
