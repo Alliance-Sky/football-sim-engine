@@ -43,7 +43,7 @@ func main() {
 	teams = engine.FillWithBots(teams, 4, 75.0)
 
 	// 2. Initialize the League Automator with no caps, and Double Round-Robin enabled
-	league, err := engine.NewLeagueManager(teams, 0, 0, true)
+	league, err := engine.NewLeagueManager(teams, 0, 0, 2)
 	if err != nil {
 		log.Fatalf("Failed to create league: %v", err)
 	}

@@ -66,7 +66,8 @@ type LeagueManager struct {
 
 // NewLeagueManager initializes a new league, builds the standings map, and generates the interleaved round-robin and cup schedule.
 // If maxPlayerRating is > 0, it dynamically caps all players in the simulation.
-func NewLeagueManager(teams []*Team, maxPlayerRating, maxTeamRating float64, doubleRoundRobin bool) (*LeagueManager, error) {
+// roundRobinMultiplier determines how many times teams play each other (1 = Single, 2 = Double, 3 = Triple, etc).
+func NewLeagueManager(teams []*Team, maxPlayerRating, maxTeamRating float64, roundRobinMultiplier int) (*LeagueManager, error) {
 	if len(teams) < 2 {
 		return nil, fmt.Errorf("league requires at least 2 teams")
 	}
@@ -89,6 +90,7 @@ func NewLeagueManager(teams []*Team, maxPlayerRating, maxTeamRating float64, dou
 		CupEliminated:   make(map[string]bool),
 	}
 
+	// Build the Standings Map
 	for _, t := range teams {
 		lm.Standings[t.ID] = &TableStanding{
 			TeamID:   t.ID,
@@ -97,25 +99,27 @@ func NewLeagueManager(teams []*Team, maxPlayerRating, maxTeamRating float64, dou
 		}
 	}
 
-	lm.Schedule = buildInterleavedSchedule(teams, doubleRoundRobin)
+	lm.Schedule = buildInterleavedSchedule(teams, roundRobinMultiplier)
 	return lm, nil
 }
 
 // generateRoundRobin uses the standard circle method to generate a full home-and-away schedule.
-func generateRoundRobin(teams []*Team, double bool) [][]Fixture {
+// The 'multiplier' determines how many times teams play each other (1 = Single, 2 = Double, 3 = Triple, etc).
+func generateRoundRobin(teams []*Team, multiplier int) [][]Fixture {
+	if multiplier < 1 {
+		multiplier = 1
+	}
+
 	n := len(teams)
 	halfRounds := n - 1
-	
-	rounds := halfRounds
-	if double {
-		rounds = halfRounds * 2
-	}
+	rounds := halfRounds * multiplier
 
 	schedule := make([][]Fixture, rounds)
 	
 	t := make([]*Team, n)
 	copy(t, teams)
 
+	// 1. Generate the base Single Round Robin
 	for round := 0; round < halfRounds; round++ {
 		var roundFixtures []Fixture
 		for i := 0; i < n/2; i++ {
@@ -138,14 +142,19 @@ func generateRoundRobin(teams []*Team, double bool) [][]Fixture {
 		t[1] = last
 	}
 	
-	// Generate the reverse fixtures for the second half of the season if double
-	if double {
+	// 2. Generate subsequent rounds by duplicating and flipping Home/Away advantage
+	for c := 1; c < multiplier; c++ {
 		for round := 0; round < halfRounds; round++ {
-			var reverseFixtures []Fixture
+			var nextFixtures []Fixture
 			for _, f := range schedule[round] {
-				reverseFixtures = append(reverseFixtures, Fixture{Home: f.Away, Away: f.Home})
+				// Flip Home/Away on every alternate playthrough (e.g. 2nd time, 4th time)
+				if c%2 == 1 {
+					nextFixtures = append(nextFixtures, Fixture{Home: f.Away, Away: f.Home})
+				} else {
+					nextFixtures = append(nextFixtures, Fixture{Home: f.Home, Away: f.Away})
+				}
 			}
-			schedule[halfRounds+round] = reverseFixtures
+			schedule[(c*halfRounds)+round] = nextFixtures
 		}
 	}
 	
@@ -153,8 +162,8 @@ func generateRoundRobin(teams []*Team, double bool) [][]Fixture {
 }
 
 // buildInterleavedSchedule takes a base round-robin schedule and inserts Cup rounds evenly throughout the season.
-func buildInterleavedSchedule(teams []*Team, double bool) []ScheduledRound {
-	leagueFixtures := generateRoundRobin(teams, double)
+func buildInterleavedSchedule(teams []*Team, multiplier int) []ScheduledRound {
+	leagueFixtures := generateRoundRobin(teams, multiplier)
 	
 	// Calculate how many cup rounds we need for N teams
 	c := 0
