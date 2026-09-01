@@ -1,4 +1,4 @@
-module rps-football-engine
+module github.com/Alliance-Sky/football-sim-engine
 
 go 1.27.0
 

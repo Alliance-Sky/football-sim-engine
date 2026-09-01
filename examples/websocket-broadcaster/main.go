@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"rps-football-engine/engine"
+	"github.com/Alliance-Sky/football-sim-engine/engine"
 )
 
 var upgrader = websocket.Upgrader{

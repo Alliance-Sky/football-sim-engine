@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"rps-football-engine/engine"
+	"github.com/Alliance-Sky/football-sim-engine/engine"
 )
 
 // Raw JSON string simulating a database fetch for a team's roster

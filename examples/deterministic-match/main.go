@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"rps-football-engine/engine"
+	"github.com/Alliance-Sky/football-sim-engine/engine"
 )
 
 // createDummyTeam generates a generic team for demonstration purposes.

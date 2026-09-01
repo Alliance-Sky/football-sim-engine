@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"rps-football-engine/engine"
+	"github.com/Alliance-Sky/football-sim-engine/engine"
 )
 
 func createDummyTeam(id, name, formation, kit string, offset int) *engine.Team {
