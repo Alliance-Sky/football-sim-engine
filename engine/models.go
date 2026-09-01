@@ -57,15 +57,15 @@ const (
 
 // Player represents a footballer with attributes and status.
 type Player struct {
-	ID               string
-	Name             string
-	NaturalPosition  Position
-	Foot             Foot
-	Rating           float64
-	Age              int
-	Health           float64
-	AssignedPosition Position // The position the player is currently playing in.
-	RatingCap        *float64 // Optional cap to artificially lower ratings (e.g. for youth or tired players).
+	ID               string    `json:"id"`
+	Name             string    `json:"name"`
+	NaturalPosition  Position  `json:"naturalPosition"`
+	Foot             Foot      `json:"foot"`
+	Rating           float64   `json:"rating"`
+	Age              int       `json:"age"`
+	Health           float64   `json:"health"`
+	AssignedPosition Position  `json:"assignedPosition"`
+	RatingCap        *float64  `json:"ratingCap,omitempty"`
 }
 
 // NewPlayer creates and validates a new Player instance.
@@ -139,11 +139,11 @@ func (p *Player) EffectiveRating() float64 {
 
 // Team represents a group of 11 players configured in a specific formation.
 type Team struct {
-	ID        string
-	Name      string
-	Formation string
-	KitColor  string // Mandatory primary kit color (e.g. Hex code like "#ff4d4d")
-	Players   []*Player
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Formation string    `json:"formation"`
+	KitColor  string    `json:"kitColor"`
+	Players   []*Player `json:"players"`
 }
 
 // NewTeam creates a Team and validates that its lineup and mandatory fields are valid.
@@ -378,53 +378,63 @@ func (t *Team) DefensiveShieldRating() float64 {
 
 // ClubMatchStats tracks a specific team's stats during a match simulation.
 type ClubMatchStats struct {
-	Team            *Team
-	TeamRating      float64
-	GoalsFor        int
-	GoalsAgainst    int
-	XG              float64 // Expected Goals
-	Shots           int
-	SOT             int // Shots On Target
-	Saves           int // Goalkeeper Saves
-	PossessionTicks int
-	Assists         int
-	Tackles         int
+	Team            *Team   `json:"team"`
+	TeamRating      float64 `json:"teamRating"`
+	Matches         int     `json:"matches"`
+	Wins            int     `json:"wins"`
+	Draws           int     `json:"draws"`
+	Losses          int     `json:"losses"`
+	GoalsFor        int     `json:"goalsFor"`
+	GoalsAgainst    int     `json:"goalsAgainst"`
+	XG              float64 `json:"xg"`
+	Shots           int     `json:"shots"`
+	SOT             int     `json:"sot"`
+	Saves           int     `json:"saves"`
+	PossessionTicks int     `json:"possessionTicks"`
+	Assists         int     `json:"assists"`
+	Tackles         int     `json:"tackles"`
+}
+
+// MatchLog represents a single play-by-play event with its corresponding minute.
+type MatchLog struct {
+	Minute  int    `json:"minute"`
+	Message string `json:"message"`
 }
 
 // MatchState holds the ongoing state of a match being simulated.
 type MatchState struct {
-	MatchType MatchType
-	Minute    int
-	HomeStats *ClubMatchStats
-	AwayStats *ClubMatchStats
-
-	PlayerStats *StatsTracker
-
-	PossessionTeam string    // "Home" or "Away"
-	BallZone       PitchZone // Current location of the ball
-
-	WentToExtraTime    bool
-	WentToPenalties    bool
-	PenaltyShootoutLog []string
-	Winner             *string
-	Commentary         []string // Play-by-play log events
+	MatchType          MatchType       `json:"matchType"`
+	Minute             int             `json:"minute"`
+	HomeStats          *ClubMatchStats `json:"homeStats"`
+	AwayStats          *ClubMatchStats `json:"awayStats"`
+	PlayerStats        *StatsTracker   `json:"playerStats"`
+	PossessionTeam     string          `json:"possessionTeam"`
+	BallZone           PitchZone       `json:"ballZone"`
+	WentToExtraTime    bool            `json:"wentToExtraTime"`
+	WentToPenalties    bool            `json:"wentToPenalties"`
+	PenaltyShootoutLog []string        `json:"penaltyShootoutLog"`
+	Winner             *string         `json:"winner,omitempty"`
+	Commentary         []MatchLog      `json:"commentary"`
 }
 
 // NewMatchState initializes a new match simulation state.
 func NewMatchState(mType MatchType, home, away *Team) *MatchState {
 	return &MatchState{
 		MatchType:          mType,
-		HomeStats:          &ClubMatchStats{Team: home, TeamRating: home.OverallRating()},
-		AwayStats:          &ClubMatchStats{Team: away, TeamRating: away.OverallRating()},
+		HomeStats:          &ClubMatchStats{Team: home, TeamRating: home.OverallRating(), Matches: 1},
+		AwayStats:          &ClubMatchStats{Team: away, TeamRating: away.OverallRating(), Matches: 1},
 		BallZone:           ZoneMidfield,
 		PossessionTeam:     "Home",
 		PlayerStats:        NewStatsTracker(),
 		PenaltyShootoutLog: make([]string, 0),
-		Commentary:         make([]string, 0),
+		Commentary:         make([]MatchLog, 0),
 	}
 }
 
 // Log adds a message to the match commentary timeline.
 func (s *MatchState) Log(msg string) {
-	s.Commentary = append(s.Commentary, msg)
+	s.Commentary = append(s.Commentary, MatchLog{
+		Minute:  s.Minute,
+		Message: msg,
+	})
 }

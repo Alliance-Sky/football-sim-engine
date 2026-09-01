@@ -10,7 +10,7 @@ func createTestTeam(name, formation, kitColor string, baseRating float64) (*Team
 	var players []*Player
 	i := 1
 	for pos, count := range slots {
-		for c := range count {
+		for _ = range count {
 			p, err := NewPlayer(
 				name+"_"+string(pos),
 				name+" "+string(pos),

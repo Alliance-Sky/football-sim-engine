@@ -49,6 +49,9 @@ Immediately after `The Final Whistle!`, the match log records a locked sequence 
 6. **Duels Won**: Defensive tackles and loose ball recoveries.
 7. **Team Rating**: Historical overall team capability index.
 
+### 7. Delta Payloads & JSON API Ready
+The engine's outputs (`MatchState`, `ClubMatchStats`, `PlayerMatchStats`) are designed as "deltas" easily applied to a database. The engine natively tracks `Matches`, `Wins`, `Draws`, `Losses`, and `HealthLost` per match. Furthermore, all core structs are fully tagged for JSON (`json:"camelCase"`), and the `Commentary` timeline returns an array of `MatchLog` objects (pairing the `Minute` with the `Message`), making it trivial to pipe the simulation output directly into a frontend UI.
+
 ---
 
 ## 🎨 Dedicated Vector SVG Assets (`svg-icons/`)
@@ -94,7 +97,10 @@ match, _ := engine.NewLeagueMatch(homeTeam, awayTeam, true, true)
 state := match.Play()
 
 // 4. Persist Results & Delta Payloads
-db.SaveClubStats(state.HomeStats.GoalsFor, state.HomeStats.GoalsAgainst, state.HomeStats.Team.ID)
+// The engine provides complete deltas (Matches, Wins, Goals, etc.) to update your DB cleanly.
+db.Execute("UPDATE clubs SET matches = matches + ?, wins = wins + ?, draws = draws + ?, losses = losses + ? WHERE id = ?",
+    state.HomeStats.Matches, state.HomeStats.Wins, state.HomeStats.Draws, state.HomeStats.Losses, state.HomeStats.Team.ID)
+    
 for _, stats := range state.PlayerStats.Stats {
     if stats.Appearances > 0 {
         db.Execute("UPDATE players SET matches = matches + 1, health = health - ? WHERE id = ?", 
@@ -105,10 +111,11 @@ for _, stats := range state.PlayerStats.Stats {
 
 ---
 
-## 🚀 Building and Running
+## 🚀 Usage
 
-Run the built-in HTTP server and interactive live simulation:
+The engine is designed as a standalone Go module to be imported into your backend services. It does not include a standalone web server.
+
+To run the simulation tests and verify the engine's logic:
 ```bash
-CGO_ENABLED=0 go run .
+go test ./engine/... -v
 ```
-Access the interactive web dashboard on **http://localhost:8000**.

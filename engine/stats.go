@@ -4,36 +4,36 @@ package engine
 // PlayerMatchStats holds the performance and health metrics for a single player
 // in a single match. It tracks stats like goals, assists, clean sheets, and tackles.
 type PlayerMatchStats struct {
-	Player      *Player // The player these stats belong to
-	Appearances int     // 1 if the player started the match
-	Goals       int     // Goals scored by the player
-	Assists     int     // Assists made by the player
-	CleanSheets int     // Earned if the player is a GK and their team conceded 0 goals
-	Tackles     int     // Successful tackles made by the player
-	HealthLost  float64 // Amount of health (fatigue) lost during the match
+	Player      *Player `json:"player"`
+	Appearances int     `json:"appearances"`
+	Goals       int     `json:"goals"`
+	Assists     int     `json:"assists"`
+	CleanSheets int     `json:"cleanSheets"`
+	Tackles     int     `json:"tackles"`
+	HealthLost  float64 `json:"healthLost"`
 }
 
 // StatsTracker manages the collection of stats for all players involved in a match.
 // It maps players to their match-specific PlayerMatchStats structure.
 type StatsTracker struct {
-	Stats map[*Player]*PlayerMatchStats // Map of players to their stats
+	Stats map[string]*PlayerMatchStats `json:"stats"` // Map of player IDs to their stats
 }
 
 // NewStatsTracker creates and initializes a new StatsTracker.
 func NewStatsTracker() *StatsTracker {
 	return &StatsTracker{
-		Stats: make(map[*Player]*PlayerMatchStats),
+		Stats: make(map[string]*PlayerMatchStats),
 	}
 }
 
 // GetOrCreate retrieves the PlayerMatchStats for a given player,
 // or creates a new one and adds it to the tracker if it doesn't exist yet.
 func (st *StatsTracker) GetOrCreate(p *Player) *PlayerMatchStats {
-	if entry, exists := st.Stats[p]; exists {
+	if entry, exists := st.Stats[p.ID]; exists {
 		return entry
 	}
 	entry := &PlayerMatchStats{Player: p}
-	st.Stats[p] = entry
+	st.Stats[p.ID] = entry
 	return entry
 }
 

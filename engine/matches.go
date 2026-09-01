@@ -91,10 +91,16 @@ func (m *LeagueMatch) Play() *MatchState {
 	hStr, aStr := "Home", "Away"
 	if state.HomeStats.GoalsFor > state.AwayStats.GoalsFor {
 		state.Winner = &hStr
+		state.HomeStats.Wins = 1
+		state.AwayStats.Losses = 1
 	} else if state.AwayStats.GoalsFor > state.HomeStats.GoalsFor {
 		state.Winner = &aStr
+		state.AwayStats.Wins = 1
+		state.HomeStats.Losses = 1
 	} else {
 		state.Winner = nil
+		state.HomeStats.Draws = 1
+		state.AwayStats.Draws = 1
 	}
 
 	if m.Verbose {
@@ -169,6 +175,16 @@ func (m *CupMatch) Play() *MatchState {
 			state.Winner = &hStr
 		} else {
 			state.Winner = &aStr
+		}
+	}
+
+	if state.Winner != nil {
+		if *state.Winner == "Home" {
+			state.HomeStats.Wins = 1
+			state.AwayStats.Losses = 1
+		} else {
+			state.AwayStats.Wins = 1
+			state.HomeStats.Losses = 1
 		}
 	}
 
