@@ -59,7 +59,7 @@ func main() {
 	state, _ := engine.QuickPlay(engine.MatchLeague, arsenal, manCity, true)
 
 	fmt.Printf("\n--- FULL TIME ---\n")
-	fmt.Printf("%s %d : %d %s\n\n", arsenal.Name, state.HomeStats.GoalsFor, state.AwayStats.GoalsFor, manCity.Name)
+	fmt.Printf("%s %d : %d %s\n\n", arsenal.Name, state.HomeStats.MatchGoalsFor, state.AwayStats.MatchGoalsFor, manCity.Name)
 
 	fmt.Println("📦 First 3 Match Log Events:")
 	outputLogs, _ := json.MarshalIndent(state.Commentary[:3], "", "  ")

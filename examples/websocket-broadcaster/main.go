@@ -36,9 +36,9 @@ func simulateLiveMatch(w http.ResponseWriter, r *http.Request) {
 		log.Println("Engine error:", err)
 		return
 	}
-	
+
 	// 3. We have the full result immediately! We can save to DB here.
-	log.Printf("Match Generated. Final Score: %d - %d", state.HomeStats.GoalsFor, state.AwayStats.GoalsFor)
+	log.Printf("Match Generated. Final Score: %d - %d", state.HomeStats.MatchGoalsFor, state.AwayStats.MatchGoalsFor)
 
 	// 4. We start broadcasting the timeline to the client to create a "Live" feel
 	for _, event := range state.Commentary {
@@ -48,7 +48,7 @@ func simulateLiveMatch(w http.ResponseWriter, r *http.Request) {
 			log.Println("Client disconnected:", err)
 			return
 		}
-		
+
 		// Wait 250 milliseconds between events so the UI animates properly
 		time.Sleep(250 * time.Millisecond)
 	}
@@ -56,8 +56,7 @@ func simulateLiveMatch(w http.ResponseWriter, r *http.Request) {
 	// 5. Send a final termination message
 	finalMsg := engine.MatchLog{
 		Minute:  90,
-		Message: fmt.Sprintf("FULL TIME! The final score is %d - %d.", state.HomeStats.GoalsFor, state.AwayStats.GoalsFor),
-		Type:    engine.LogNeutral,
+		Message: fmt.Sprintf("FULL TIME! The final score is %d - %d.", state.HomeStats.MatchGoalsFor, state.AwayStats.MatchGoalsFor),
 	}
 	conn.WriteJSON(finalMsg)
 	log.Println("Broadcast complete.")

@@ -291,15 +291,15 @@ func (sr *ShotResolver) Resolve(state *MatchState, isHome bool) {
 		}
 
 		if isHome {
-			state.HomeStats.GoalsFor++
-			state.AwayStats.GoalsAgainst++
+			state.HomeStats.MatchGoalsFor++
+			state.AwayStats.MatchGoalsAgainst++
 			state.HomeStats.SOT++
 			if creator != nil {
 				state.HomeStats.Assists++
 			}
 		} else {
-			state.AwayStats.GoalsFor++
-			state.HomeStats.GoalsAgainst++
+			state.AwayStats.MatchGoalsFor++
+			state.HomeStats.MatchGoalsAgainst++
 			state.AwayStats.SOT++
 			if creator != nil {
 				state.AwayStats.Assists++
@@ -308,7 +308,7 @@ func (sr *ShotResolver) Resolve(state *MatchState, isHome bool) {
 
 		if sr.Verbose {
 			state.Log(fmt.Sprintf("⚽ GOAL! %d. %d:%d %s",
-				state.Minute, state.HomeStats.GoalsFor, state.AwayStats.GoalsFor, shooter.Name))
+				state.Minute, state.HomeStats.MatchGoalsFor, state.AwayStats.MatchGoalsFor, shooter.Name))
 		}
 
 		state.BallZone = ZoneMidfield

@@ -21,10 +21,10 @@ func createDummyTeam(id, name, formation, kit string) *engine.Team {
 				fmt.Sprintf("%s-p%d", id, playerIdx),
 				pName,
 				pos,
-				engine.FootRight, // Default right foot
-				85.0,             // 85 Rating
-				24,               // 24 Years old
-				100.0,            // 100% Health
+				engine.FootRight,     // Default right foot
+				85.0,                 // 85 Rating
+				24,                   // 24 Years old
+				100.0,                // 100% Health
 				new(engine.Position), // Use natural position
 			)
 			// Explicitly assign natural position to assigned position to prevent OOP penalties
@@ -57,7 +57,7 @@ func main() {
 
 	// 3. Output the final scoreline
 	fmt.Printf("\n--- FULL TIME ---\n")
-	fmt.Printf("%s %d : %d %s\n\n", home.Name, state.HomeStats.GoalsFor, state.AwayStats.GoalsFor, away.Name)
+	fmt.Printf("%s %d : %d %s\n\n", home.Name, state.HomeStats.MatchGoalsFor, state.AwayStats.MatchGoalsFor, away.Name)
 
 	// 4. Output the delta JSON payload
 	fmt.Println("📦 Match State Delta Payload (JSON):")

@@ -64,7 +64,7 @@ func main() {
 			league.RecordMatch(state)
 			
 			if r.Type == engine.MatchCup {
-				fmt.Printf("  🏆 CUP RESULT: %s %d - %d %s (Winner: %v)\n", f.Home.Name, state.HomeStats.GoalsFor, state.AwayStats.GoalsFor, f.Away.Name, *state.Winner)
+				fmt.Printf("  🏆 CUP RESULT: %s %d - %d %s (Winner: %v)\n", f.Home.Name, state.HomeStats.MatchGoalsFor, state.AwayStats.MatchGoalsFor, f.Away.Name, *state.Winner)
 			}
 		}
 	}

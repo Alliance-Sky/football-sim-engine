@@ -1,5 +1,5 @@
-// Package engine provides match orchestration for the RPS Football Engine.
 package engine
+// Package engine provides match orchestration for the RPS Football Engine.
 
 import (
 	"fmt"
@@ -23,7 +23,10 @@ func ApplyPostMatchFatigue(state *MatchState, home, away *Team) {
 			actualLost = p.Health - MinHealth
 		}
 
-		state.PlayerStats.GetOrCreate(p).HealthLost = max(0, actualLost)
+		p.Health -= max(0, actualLost)
+		entry := state.PlayerStats.GetOrCreate(p)
+		entry.MatchHealthLost = max(0, actualLost)
+		entry.PostMatchHealth = p.Health
 	}
 }
 
@@ -37,11 +40,11 @@ func CoinTossKickoff(state *MatchState, rng *rand.Rand) {
 	}
 }
 
-// RecordStartingAppearances logs an appearance for all players in the starting
+// RecordStartingMatches logs an appearance for all players in the starting
 // lineups for both teams in the match stats.
-func RecordStartingAppearances(state *MatchState, home, away *Team) {
+func RecordStartingMatches(state *MatchState, home, away *Team) {
 	for _, p := range append(home.Players, away.Players...) {
-		state.PlayerStats.RecordAppearance(p)
+		state.PlayerStats.RecordMatchPlayed(p)
 	}
 }
 
@@ -78,7 +81,7 @@ func (m *LeagueMatch) Play() *MatchState {
 	// Initialize the MatchState specific for a League match
 	state := NewMatchState(MatchLeague, m.Home, m.Away)
 	CoinTossKickoff(state, m.Rng)
-	RecordStartingAppearances(state, m.Home, m.Away)
+	RecordStartingMatches(state, m.Home, m.Away)
 
 	if m.Verbose {
 		state.Log(fmt.Sprintf("Formation: %s ( %s ) : %s ( %s )", m.Home.Formation, m.Home.Style(), m.Away.Formation, m.Away.Style()))
@@ -89,26 +92,27 @@ func (m *LeagueMatch) Play() *MatchState {
 	engine.ExecuteTicks(state, 1, 90)
 
 	hStr, aStr := "Home", "Away"
-	if state.HomeStats.GoalsFor > state.AwayStats.GoalsFor {
+	if state.HomeStats.MatchGoalsFor > state.AwayStats.MatchGoalsFor {
 		state.Winner = &hStr
-		state.HomeStats.Wins = 1
-		state.AwayStats.Losses = 1
-	} else if state.AwayStats.GoalsFor > state.HomeStats.GoalsFor {
+		state.HomeStats.MatchWins = 1
+		state.AwayStats.MatchLosses = 1
+	} else if state.AwayStats.MatchGoalsFor > state.HomeStats.MatchGoalsFor {
 		state.Winner = &aStr
-		state.AwayStats.Wins = 1
-		state.HomeStats.Losses = 1
+		state.AwayStats.MatchWins = 1
+		state.HomeStats.MatchLosses = 1
 	} else {
 		state.Winner = nil
-		state.HomeStats.Draws = 1
-		state.AwayStats.Draws = 1
+		state.HomeStats.MatchDraws = 1
+		state.AwayStats.MatchDraws = 1
 	}
 
 	if m.Verbose {
 		LogPostMatchStats(state)
 	}
 
-	state.PlayerStats.RecordCleanSheets(m.Home, m.Away, state.HomeStats.GoalsFor, state.AwayStats.GoalsFor)
+	state.PlayerStats.RecordCleanSheets(m.Home, m.Away, state.HomeStats.MatchGoalsFor, state.AwayStats.MatchGoalsFor)
 	ApplyPostMatchFatigue(state, m.Home, m.Away)
+	FinalizeClubStats(state)
 	return state
 }
 
@@ -145,7 +149,7 @@ func (m *CupMatch) Play() *MatchState {
 	// Initialize the MatchState specific for a Cup match
 	state := NewMatchState(MatchCup, m.Home, m.Away)
 	CoinTossKickoff(state, m.Rng)
-	RecordStartingAppearances(state, m.Home, m.Away)
+	RecordStartingMatches(state, m.Home, m.Away)
 
 	if m.Verbose {
 		state.Log(fmt.Sprintf("Formation: %s ( %s ) : %s ( %s )", m.Home.Formation, m.Home.Style(), m.Away.Formation, m.Away.Style()))
@@ -155,7 +159,7 @@ func (m *CupMatch) Play() *MatchState {
 	engine := NewTickEngine(m.Home, m.Away, m.HomeAdv, m.Verbose, m.Rng)
 	engine.ExecuteTicks(state, 1, 90)
 
-	if state.HomeStats.GoalsFor == state.AwayStats.GoalsFor {
+	if state.HomeStats.MatchGoalsFor == state.AwayStats.MatchGoalsFor {
 		state.WentToExtraTime = true
 		if m.Verbose {
 			state.Log("--- EXTRA TIME BEGINS (91'-120') ---")
@@ -167,11 +171,11 @@ func (m *CupMatch) Play() *MatchState {
 
 	hStr, aStr := "Home", "Away"
 
-	if state.HomeStats.GoalsFor == state.AwayStats.GoalsFor {
+	if state.HomeStats.MatchGoalsFor == state.AwayStats.MatchGoalsFor {
 		penResolver := &PenaltyResolver{}
 		penResolver.ResolveShootout(state, m.Home, m.Away, m.Verbose, m.Rng)
 	} else {
-		if state.HomeStats.GoalsFor > state.AwayStats.GoalsFor {
+		if state.HomeStats.MatchGoalsFor > state.AwayStats.MatchGoalsFor {
 			state.Winner = &hStr
 		} else {
 			state.Winner = &aStr
@@ -180,11 +184,11 @@ func (m *CupMatch) Play() *MatchState {
 
 	if state.Winner != nil {
 		if *state.Winner == "Home" {
-			state.HomeStats.Wins = 1
-			state.AwayStats.Losses = 1
+			state.HomeStats.MatchWins = 1
+			state.AwayStats.MatchLosses = 1
 		} else {
-			state.AwayStats.Wins = 1
-			state.HomeStats.Losses = 1
+			state.AwayStats.MatchWins = 1
+			state.HomeStats.MatchLosses = 1
 		}
 	}
 
@@ -192,8 +196,9 @@ func (m *CupMatch) Play() *MatchState {
 		LogPostMatchStats(state)
 	}
 
-	state.PlayerStats.RecordCleanSheets(m.Home, m.Away, state.HomeStats.GoalsFor, state.AwayStats.GoalsFor)
+	state.PlayerStats.RecordCleanSheets(m.Home, m.Away, state.HomeStats.MatchGoalsFor, state.AwayStats.MatchGoalsFor)
 	ApplyPostMatchFatigue(state, m.Home, m.Away)
+	FinalizeClubStats(state)
 	return state
 }
 
@@ -256,4 +261,33 @@ func DeterministicPlay(matchType MatchType, home, away *Team, homeAdv bool, seed
 		return match.Play(), nil
 	}
 	return nil, fmt.Errorf("invalid match type: %s", matchType)
+}
+
+func FinalizeClubStats(state *MatchState) {
+    if state.Winner == nil && state.MatchType == MatchLeague {
+        state.HomeStats.MatchDraws = 1
+        state.AwayStats.MatchDraws = 1
+    }
+
+    updateClub(state.HomeStats, state.AwayStats)
+    updateClub(state.AwayStats, state.HomeStats)
+}
+
+func updateClub(stats *ClubMatchStats, oppStats *ClubMatchStats) {
+    team := stats.Team
+    team.Matches += stats.MatchMatches
+    team.Wins += stats.MatchWins
+    team.Draws += stats.MatchDraws
+    team.Losses += stats.MatchLosses
+    team.GoalsFor += stats.MatchGoalsFor
+    team.GoalsAgainst += oppStats.MatchGoalsFor
+
+    stats.MatchGoalsAgainst = oppStats.MatchGoalsFor
+    
+    stats.PostMatchMatches = team.Matches
+    stats.PostMatchWins = team.Wins
+    stats.PostMatchDraws = team.Draws
+    stats.PostMatchLosses = team.Losses
+    stats.PostMatchGoalsFor = team.GoalsFor
+    stats.PostMatchGoalsAgainst = team.GoalsAgainst
 }

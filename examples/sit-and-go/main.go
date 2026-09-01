@@ -24,10 +24,10 @@ func main() {
 
 	// 2. Real Players join the lobby
 	fmt.Println("⏳ Waiting for players to join...")
-	
+
 	realTeam1 := createRealTeam("t1", "Real Player FC", 79.0)
 	_ = tourney.Join(realTeam1)
-	
+
 	realTeam2 := createRealTeam("t2", "Too Good FC", 85.0) // This team has 85 rated players
 	_ = tourney.Join(realTeam2)
 	fmt.Printf("⚠️ Too Good FC joined with 85 OVR. The engine dynamically nerfed them to 80.0!\n")
@@ -50,15 +50,15 @@ func main() {
 		}
 
 		fmt.Printf("--- ROUND %d (%d Fixtures) ---\n", tourney.RoundNumber, len(fixtures))
-		
+
 		// In a real backend, you would Wait 60 Seconds here before simulating!
-		// time.Sleep(60 * time.Second) 
+		// time.Sleep(60 * time.Second)
 
 		for _, f := range fixtures {
 			// Simulate the MatchCup
 			state, _ := engine.QuickPlay(engine.MatchCup, f.Home, f.Away, false)
 			tourney.RecordMatch(state)
-			fmt.Printf("🏆 %s %d - %d %s\n", f.Home.Name, state.HomeStats.GoalsFor, state.AwayStats.GoalsFor, f.Away.Name)
+			fmt.Printf("🏆 %s %d - %d %s\n", f.Home.Name, state.HomeStats.MatchGoalsFor, state.AwayStats.MatchGoalsFor, f.Away.Name)
 		}
 		fmt.Println()
 	}

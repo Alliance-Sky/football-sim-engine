@@ -53,15 +53,15 @@ func (gtm *GroupTournamentManager) Start() error {
 	})
 
 	numGroups := gtm.MaxParticipants / gtm.GroupSize
-	
+
 	// Create Groups (A, B, C...)
 	for i := 0; i < numGroups; i++ {
 		groupName := string(rune('A' + i))
-		
+
 		startIndex := i * gtm.GroupSize
 		endIndex := startIndex + gtm.GroupSize
 		groupTeams := gtm.Participants[startIndex:endIndex]
-		
+
 		// Each group is literally just a mini LeagueManager (Single Round Robin!)
 		groupLeague, _ := NewLeagueManager(groupTeams, 0, 0, 1)
 		gtm.Groups[groupName] = groupLeague
@@ -84,7 +84,7 @@ func (gtm *GroupTournamentManager) TransitionToKnockouts() error {
 	for i := 0; i < numGroups; i++ {
 		groupName := string(rune('A' + i))
 		league := gtm.Groups[groupName]
-		
+
 		table := league.GetTable()
 		if len(table) >= 2 {
 			// Find the actual *Team structs by matching the ID
@@ -98,12 +98,12 @@ func (gtm *GroupTournamentManager) TransitionToKnockouts() error {
 
 	// Create the Knockout Bracket!
 	knockout, _ := NewTournamentManager(gtm.ID+"-KO", gtm.Name+" Finals", len(advancingTeams), 0, 0, false)
-	
+
 	// Manually inject the active teams
 	knockout.Participants = advancingTeams
 	knockout.ActiveTeams = make([]*Team, len(advancingTeams))
 	copy(knockout.ActiveTeams, advancingTeams)
-	
+
 	gtm.Knockout = knockout
 	gtm.Stage = "Knockout"
 	return nil

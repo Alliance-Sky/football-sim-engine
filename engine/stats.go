@@ -4,13 +4,20 @@ package engine
 // PlayerMatchStats holds the performance and health metrics for a single player
 // in a single match. It tracks stats like goals, assists, clean sheets, and tackles.
 type PlayerMatchStats struct {
-	Player      *Player `json:"player"`
-	Appearances int     `json:"appearances"`
-	Goals       int     `json:"goals"`
-	Assists     int     `json:"assists"`
-	CleanSheets int     `json:"cleanSheets"`
-	Tackles     int     `json:"tackles"`
-	HealthLost  float64 `json:"healthLost"`
+	Player *Player `json:"player"`
+
+	MatchGoals       int     `json:"matchGoals"`
+	MatchAssists     int     `json:"matchAssists"`
+	MatchCleanSheets int     `json:"matchCleanSheets"`
+	MatchTackles     int     `json:"matchTackles"`
+	MatchHealthLost  float64 `json:"matchHealthLost"`
+
+	PostMatchMatches     int     `json:"postMatchMatches"`
+	PostMatchGoals       int     `json:"postMatchGoals"`
+	PostMatchAssists     int     `json:"postMatchAssists"`
+	PostMatchCleanSheets int     `json:"postMatchCleanSheets"`
+	PostMatchTackles     int     `json:"postMatchTackles"`
+	PostMatchHealth      float64 `json:"postMatchHealth"`
 }
 
 // StatsTracker manages the collection of stats for all players involved in a match.
@@ -33,6 +40,15 @@ func (st *StatsTracker) GetOrCreate(p *Player) *PlayerMatchStats {
 		return entry
 	}
 	entry := &PlayerMatchStats{Player: p}
+
+	// Initialize with the player's current cumulative totals
+	entry.PostMatchMatches = p.Matches
+	entry.PostMatchGoals = p.Goals
+	entry.PostMatchAssists = p.Assists
+	entry.PostMatchCleanSheets = p.CleanSheets
+	entry.PostMatchTackles = p.Tackles
+	entry.PostMatchHealth = p.Health
+
 	st.Stats[p.ID] = entry
 	return entry
 }
@@ -42,7 +58,10 @@ func (st *StatsTracker) RecordGoal(scorer *Player) {
 	if scorer == nil {
 		return
 	}
-	st.GetOrCreate(scorer).Goals++
+	scorer.Goals++
+	entry := st.GetOrCreate(scorer)
+	entry.MatchGoals++
+	entry.PostMatchGoals = scorer.Goals
 }
 
 // RecordAssist increments the assist count for the specified player.
@@ -50,7 +69,10 @@ func (st *StatsTracker) RecordAssist(assister *Player) {
 	if assister == nil {
 		return
 	}
-	st.GetOrCreate(assister).Assists++
+	assister.Assists++
+	entry := st.GetOrCreate(assister)
+	entry.MatchAssists++
+	entry.PostMatchAssists = assister.Assists
 }
 
 // RecordCleanSheets awards a clean sheet to the goalkeepers of any team
@@ -58,22 +80,33 @@ func (st *StatsTracker) RecordAssist(assister *Player) {
 func (st *StatsTracker) RecordCleanSheets(home, away *Team, homeScore, awayScore int) {
 	if awayScore == 0 {
 		for _, gk := range home.Goalkeepers() {
-			st.GetOrCreate(gk).CleanSheets++
+			gk.CleanSheets++
+			entry := st.GetOrCreate(gk)
+			entry.MatchCleanSheets++
+			entry.PostMatchCleanSheets = gk.CleanSheets
 		}
 	}
 	if homeScore == 0 {
 		for _, gk := range away.Goalkeepers() {
-			st.GetOrCreate(gk).CleanSheets++
+			gk.CleanSheets++
+			entry := st.GetOrCreate(gk)
+			entry.MatchCleanSheets++
+			entry.PostMatchCleanSheets = gk.CleanSheets
 		}
 	}
 }
 
-// RecordAppearance marks the player as having appeared in the match.
-func (st *StatsTracker) RecordAppearance(p *Player) {
+// RecordMatchPlayed marks the player as having appeared in the match.
+func (st *StatsTracker) RecordMatchPlayed(p *Player) {
 	if p == nil {
 		return
 	}
-	st.GetOrCreate(p).Appearances = 1
+	// We only want to increment this once per match, not every tick.
+	// We will track matches when they are first initialized in a match
+	// or handled elsewhere. Let's assume RecordMatchPlayed is only called once
+	// per match for starters in engine/matches.go
+	p.Matches++
+	st.GetOrCreate(p).PostMatchMatches = p.Matches
 }
 
 // RecordTackle increments the tackle count for the specified player.
@@ -81,5 +114,8 @@ func (st *StatsTracker) RecordTackle(p *Player) {
 	if p == nil {
 		return
 	}
-	st.GetOrCreate(p).Tackles++
+	p.Tackles++
+	entry := st.GetOrCreate(p)
+	entry.MatchTackles++
+	entry.PostMatchTackles = p.Tackles
 }

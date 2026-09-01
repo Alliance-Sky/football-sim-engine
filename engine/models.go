@@ -64,15 +64,20 @@ const (
 
 // Player represents a footballer with attributes and status.
 type Player struct {
-	ID               string    `json:"id"`
-	Name             string    `json:"name"`
-	NaturalPosition  Position  `json:"naturalPosition"`
-	Foot             Foot      `json:"foot"`
-	Rating           float64   `json:"rating"`
-	Age              int       `json:"age"`
-	Health           float64   `json:"health"`
-	AssignedPosition Position  `json:"assignedPosition"`
-	RatingCap        *float64  `json:"ratingCap,omitempty"`
+	ID               string   `json:"id"`
+	Name             string   `json:"name"`
+	NaturalPosition  Position `json:"naturalPosition"`
+	Foot             Foot     `json:"foot"`
+	Rating           float64  `json:"rating"`
+	Age              int      `json:"age"`
+	Health           float64  `json:"health"`
+	AssignedPosition Position `json:"assignedPosition"`
+	RatingCap        *float64 `json:"ratingCap,omitempty"`
+	Matches          int      `json:"matches"`
+	Goals            int      `json:"goals"`
+	Assists          int      `json:"assists"`
+	CleanSheets      int      `json:"cleanSheets"`
+	Tackles          int      `json:"tackles"`
 }
 
 // NewPlayer creates and validates a new Player instance.
@@ -151,6 +156,12 @@ type Team struct {
 	Formation string    `json:"formation"`
 	KitColor  string    `json:"kitColor"`
 	Players   []*Player `json:"players"`
+	Matches   int       `json:"matches"`
+	Wins      int       `json:"wins"`
+	Draws     int       `json:"draws"`
+	Losses    int       `json:"losses"`
+	GoalsFor  int       `json:"goalsFor"`
+	GoalsAgainst int    `json:"goalsAgainst"`
 }
 
 // NewTeam creates a Team and validates that its lineup and mandatory fields are valid.
@@ -387,12 +398,18 @@ func (t *Team) DefensiveShieldRating() float64 {
 type ClubMatchStats struct {
 	Team            *Team   `json:"team"`
 	TeamRating      float64 `json:"teamRating"`
-	Matches         int     `json:"matches"`
-	Wins            int     `json:"wins"`
-	Draws           int     `json:"draws"`
-	Losses          int     `json:"losses"`
-	GoalsFor        int     `json:"goalsFor"`
-	GoalsAgainst    int     `json:"goalsAgainst"`
+	MatchMatches         int     `json:"matchMatches"`
+	MatchWins            int     `json:"matchWins"`
+	MatchDraws           int     `json:"matchDraws"`
+	MatchLosses          int     `json:"matchLosses"`
+	MatchGoalsFor        int     `json:"matchGoalsFor"`
+	MatchGoalsAgainst    int     `json:"matchGoalsAgainst"`
+	PostMatchMatches         int     `json:"postMatchMatches"`
+	PostMatchWins            int     `json:"postMatchWins"`
+	PostMatchDraws           int     `json:"postMatchDraws"`
+	PostMatchLosses          int     `json:"postMatchLosses"`
+	PostMatchGoalsFor        int     `json:"postMatchGoalsFor"`
+	PostMatchGoalsAgainst    int     `json:"postMatchGoalsAgainst"`
 	XG              float64 `json:"xg"`
 	Shots           int     `json:"shots"`
 	SOT             int     `json:"sot"`
@@ -428,8 +445,8 @@ type MatchState struct {
 func NewMatchState(mType MatchType, home, away *Team) *MatchState {
 	return &MatchState{
 		MatchType:          mType,
-		HomeStats:          &ClubMatchStats{Team: home, TeamRating: home.OverallRating(), Matches: 1},
-		AwayStats:          &ClubMatchStats{Team: away, TeamRating: away.OverallRating(), Matches: 1},
+		HomeStats:          &ClubMatchStats{Team: home, TeamRating: home.OverallRating(), MatchMatches: 1},
+		AwayStats:          &ClubMatchStats{Team: away, TeamRating: away.OverallRating(), MatchMatches: 1},
 		BallZone:           ZoneMidfield,
 		PossessionTeam:     "Home",
 		PlayerStats:        NewStatsTracker(),

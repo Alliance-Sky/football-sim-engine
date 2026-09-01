@@ -84,7 +84,7 @@ func (tm *TournamentManager) StartWithBots() error {
 
 	for i := 0; i < needed; i++ {
 		botRating := 60.0 // Default to 60 if no cap exists
-		
+
 		if tm.MaxPlayerRating > 0 {
 			botRating = tm.MaxPlayerRating - 10.0
 		} else if tm.MaxTeamRating > 0 {
@@ -183,9 +183,6 @@ func (tm *TournamentManager) GenerateNextRound() ([]Fixture, error) {
 func (tm *TournamentManager) RecordMatch(state *MatchState) {
 	// 1. First, always track Player Stats
 	for _, pStats := range state.PlayerStats.Stats {
-		if pStats.Appearances == 0 {
-			continue
-		}
 
 		ps, exists := tm.PlayerStats[pStats.Player.ID]
 		if !exists {
@@ -204,11 +201,11 @@ func (tm *TournamentManager) RecordMatch(state *MatchState) {
 			tm.PlayerStats[pStats.Player.ID] = ps
 		}
 
-		ps.Appearances += pStats.Appearances
-		ps.Goals += pStats.Goals
-		ps.Assists += pStats.Assists
-		ps.Tackles += pStats.Tackles
-		ps.CleanSheets += pStats.CleanSheets
+		ps.Matches += 1
+		ps.Goals += pStats.MatchGoals
+		ps.Assists += pStats.MatchAssists
+		ps.Tackles += pStats.MatchTackles
+		ps.CleanSheets += pStats.MatchCleanSheets
 	}
 
 	// 2. Handle Elimination Logic
@@ -216,15 +213,15 @@ func (tm *TournamentManager) RecordMatch(state *MatchState) {
 
 	if tm.TwoLegged && tm.CurrentLeg == 2 {
 		// We just played Leg 1! Just save the goals and RETURN without eliminating anyone!
-		tm.AggregateScores[state.HomeStats.Team.ID] += state.HomeStats.GoalsFor
-		tm.AggregateScores[state.AwayStats.Team.ID] += state.AwayStats.GoalsFor
+		tm.AggregateScores[state.HomeStats.Team.ID] += state.HomeStats.MatchGoalsFor
+		tm.AggregateScores[state.AwayStats.Team.ID] += state.AwayStats.MatchGoalsFor
 		return
 	}
 
 	if tm.TwoLegged && tm.CurrentLeg == 1 && len(tm.AggregateScores) > 0 {
 		// We just played Leg 2!
-		tm.AggregateScores[state.HomeStats.Team.ID] += state.HomeStats.GoalsFor
-		tm.AggregateScores[state.AwayStats.Team.ID] += state.AwayStats.GoalsFor
+		tm.AggregateScores[state.HomeStats.Team.ID] += state.HomeStats.MatchGoalsFor
+		tm.AggregateScores[state.AwayStats.Team.ID] += state.AwayStats.MatchGoalsFor
 
 		homeAgg := tm.AggregateScores[state.HomeStats.Team.ID]
 		awayAgg := tm.AggregateScores[state.AwayStats.Team.ID]
@@ -260,7 +257,7 @@ func (tm *TournamentManager) RecordMatch(state *MatchState) {
 		} else if state.Winner != nil && *state.Winner == "Away" {
 			loser = state.HomeStats.Team
 			winner = state.AwayStats.Team
-		} else if state.HomeStats.GoalsFor > state.AwayStats.GoalsFor {
+		} else if state.HomeStats.MatchGoalsFor > state.AwayStats.MatchGoalsFor {
 			loser = state.AwayStats.Team
 			winner = state.HomeStats.Team
 		}
