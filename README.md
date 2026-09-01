@@ -17,6 +17,8 @@ Designed to be integrated directly into live multiplayer backend architectures, 
 * **Deterministic Mode:** By supplying an RNG seed, you can flawlessly reproduce the exact same match events and outcome every single time—ideal for debugging and replay systems.
 
 ### 2. 🧠 Advanced Football Logic
+* **Dynamic Player Progression:** Every player has a `Potential` ceiling. Post-match, players below their potential have a 10% RNG chance to permanently gain +1.0 Rating in-memory, simulating "wonderkid" growth.
+
 * **Automated In-Memory Fatigue:** The engine automatically deducts calculated fatigue straight from the `Player.Health` struct in-memory. If you feed the exact same `Team` struct back into the engine for Match 2, their fatigue perfectly carries over naturally.
 * **Out-of-Position (OOP) Penalties:** Automatically applies granular rating penalties based on a player's `NaturalPosition` vs `AssignedPosition` (e.g., sector swaps, wrong foot, outfield players in goal).
 * **Tactical Rock-Paper-Scissors (RPS):** Formations fall into categorical advantages (e.g., Aggressive > Control > Counter > Aggressive), conferring statistical edges in-game.
