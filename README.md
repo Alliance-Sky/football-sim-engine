@@ -96,7 +96,8 @@ arsenal, err := engine.LoadTeamFromJSON("t1", "Arsenal", "4-3-3 Attacking", "#f0
 ### 2. The LeagueManager (Season Automator)
 The `LeagueManager` handles scheduling, math, points, and standings so you don't have to. It automatically calculates **Points**, **Goal Difference**, **Recent Form (W/D/L)**, and dynamically interleaves **Knockout Cup Matches** into your season!
 ```go
-league, _ := engine.NewLeagueManager(teams, 0, 0) // Natively schedules all matches. Pass rating caps if needed!
+// Natively validate Rating Caps! (0, 0 = no caps)
+league, _ := engine.NewLeagueManager(teams, 85.0, 0) 
 
 // The engine natively tracks custom rewards for the winners!
 league.ChampionRewards["Prestige"] = 1000
@@ -115,7 +116,7 @@ goldenBootJSON := league.GetTopScorers(10)
 ```
 
 ### 3. TournamentManager (Sit-and-Go Tournaments)
-Perfect for replicating classic knockout mechanics with 60-second "ready up" lobbies. It natively supports **Rating Caps**, dynamically pairs surviving teams, and automatically backfills dead lobbies with **AI Bots** (named cleanly like `"Sydney Bot FC"`). 
+Perfect for replicating classic knockout mechanics with 60-second "ready up" lobbies. It natively supports **Rating Caps**, dynamically pairs surviving teams, and automatically handles prize resolution.
 ```go
 // Create a 16-team tournament with a U-80 Player Rating Cap
 tourney := engine.NewTournamentManager("tour-01", "Silver Cup", 16, 80.0, 0)
@@ -139,11 +140,20 @@ winnerID := tourney.GetWinnerID()
 rewards := tourney.WinnerRewards
 ```
 
-### 4. Match Facades (QuickPlay & Deterministic)
+### 4. Universal Bot Generation
+If your League or Tournament lobby timer expires before it fills up, the engine can instantly pad your lobby with fully valid AI Teams. These bots pull from a massive dictionary of 200 cities, 200 first names, and 200 last names to feel completely realistic!
+```go
+// Automatically generates completely unique teams (e.g. "Paris Bot FC") 
+// with players strictly tuned to your target rating (e.g. 75.0)
+finalTeams := engine.FillWithBots(joinedTeams, 14, 75.0) 
+league, _ := engine.NewLeagueManager(finalTeams, 0, 0)
+```
+
+### 5. Match Facades (QuickPlay & Deterministic)
 * **`engine.QuickPlay(matchType, home, away, homeAdv)`**: A clean facade that auto-injects an RNG seed and returns the `MatchState` instantly.
 * **`engine.DeterministicPlay(matchType, home, away, homeAdv, seed)`**: Replay classic matches or debug edge cases! If you pass the exact same seed (e.g., `9999`), the engine will perfectly recreate the exact same commentary, events, and scoreline every single time.
 
-### 5. UI Dropdown Helpers
+### 6. UI Dropdown Helpers
 Building team management screens? The engine exports static arrays for your frontend:
 ```go
 formations := engine.GetAvailableFormations() // ["4-3-3 Attacking", "4-2-3-1", ...]
