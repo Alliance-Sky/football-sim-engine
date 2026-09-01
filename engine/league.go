@@ -371,13 +371,24 @@ func (lm *LeagueManager) GetTable() []TableStanding {
 	}
 
 	sort.Slice(table, func(i, j int) bool {
+		// 1. Points
 		if table[i].Points != table[j].Points {
 			return table[i].Points > table[j].Points
 		}
+		// 2. Goal Difference
 		if table[i].GoalDifference != table[j].GoalDifference {
 			return table[i].GoalDifference > table[j].GoalDifference
 		}
-		return table[i].GoalsFor > table[j].GoalsFor
+		// 3. Goals Scored (For)
+		if table[i].GoalsFor != table[j].GoalsFor {
+			return table[i].GoalsFor > table[j].GoalsFor
+		}
+		// 4. Most Wins
+		if table[i].Wins != table[j].Wins {
+			return table[i].Wins > table[j].Wins
+		}
+		// 5. Deterministic Fallback (Alphabetical by Team Name)
+		return table[i].TeamName < table[j].TeamName
 	})
 
 	for i := range table {
