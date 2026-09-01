@@ -82,43 +82,57 @@ All match events, scoreboard kits, and post-match stats use dedicated, football-
 
 ---
 
-## 💻 Basic Implementation Example
+## 💻 Core Developer Tools & Automators
 
+The engine ships with a massive suite of developer tools designed to make building a backend trivial.
+
+### 1. JSON Hydration (Database Loaders)
+Never write a manual `for` loop to build a team again. If you pull raw JSON from your PostgreSQL/MongoDB database, the engine natively deserializes, hydrates, and validates the `*Team` struct in one line:
 ```go
-import "rps-football-engine/engine"
+jsonData := []byte(`[{"id": "p1", "name": "B. Saka", "naturalPosition": "RW", "rating": 88, ...}]`)
+arsenal, err := engine.LoadTeamFromJSON("t1", "Arsenal", "4-3-3 Attacking", "#f06595", jsonData)
+```
 
-// 1. Load Player Lineups
-p1, _ := engine.NewPlayer("uuid-001", "Bukayo Saka", engine.PosRW, engine.FootLeft, 88.0, 23, 100.0, nil)
-// ... instantiate full starting XI
+### 2. The LeagueManager (Season Automator)
+The `LeagueManager` handles scheduling, math, points, and standings so you don't have to. It automatically calculates **Points**, **Goal Difference**, **Recent Form (W/D/L)**, and dynamically interleaves **Knockout Cup Matches** into your season!
+```go
+league, _ := engine.NewLeagueManager(teams) // Natively schedules all 380 matches + Knockout Cup
 
-// 2. Initialize Teams with Mandatory KitColor
-homeTeam, _ := engine.NewTeam("t1", "Arsenal", "4-3-3 Attacking", "#f06595", homePlayers)
-awayTeam, _ := engine.NewTeam("t2", "Man City", "4-2-3-1", "#51cf66", awayPlayers)
-
-// 3. Play Match (League or Cup)
-match, _ := engine.NewLeagueMatch(homeTeam, awayTeam, true, true)
-state := match.Play()
-
-// 4. Persist Results & Delta Payloads
-// The engine provides complete deltas (Matches, Wins, Goals, etc.) to update your DB cleanly.
-db.Execute("UPDATE clubs SET matches = matches + ?, wins = wins + ?, draws = draws + ?, losses = losses + ? WHERE id = ?",
-    state.HomeStats.Matches, state.HomeStats.Wins, state.HomeStats.Draws, state.HomeStats.Losses, state.HomeStats.Team.ID)
+for round := 1; round <= len(league.Schedule); round++ {
+    // 1. Get today's fixtures (Automatically knows if it's League or Cup)
+    matchday := league.GetNextRound()
     
-for _, stats := range state.PlayerStats.Stats {
-    if stats.Appearances > 0 {
-        db.Execute("UPDATE players SET matches = matches + 1, health = health - ? WHERE id = ?", 
-            stats.HealthLost, stats.Player.ID)
+    // 2. Play them (Developers control the clock. Do this in a loop, or on a daily Cron job!)
+    for _, fixture := range matchday.Fixtures {
+        state, _ := engine.QuickPlay(matchday.Type, fixture.Home, fixture.Away, true)
+        league.RecordMatch(state)
     }
 }
+
+// 3. Output the perfectly sorted JSON Leaderboards directly to your frontend!
+pointsTableJSON := league.GetTable()
+goldenBootJSON := league.GetTopScorers(10)
+goldenGloveJSON := league.GetTopCleanSheets(5)
+```
+
+### 3. Match Facades (QuickPlay & Deterministic)
+* **`engine.QuickPlay(matchType, home, away, homeAdv)`**: A clean facade that auto-injects an RNG seed and returns the `MatchState` instantly.
+* **`engine.DeterministicPlay(matchType, home, away, homeAdv, seed)`**: Replay classic matches or debug edge cases! If you pass the exact same seed (e.g., `9999`), the engine will perfectly recreate the exact same commentary, events, and scoreline every single time.
+
+### 4. UI Dropdown Helpers
+Building team management screens? The engine exports static arrays for your frontend:
+```go
+formations := engine.GetAvailableFormations() // ["4-3-3 Attacking", "4-2-3-1", ...]
+positions := engine.GetPositions()            // ["GK", "CB", "CM", "ST", ...]
 ```
 
 ---
 
 ## 🚀 Usage
 
-The engine is designed as a standalone Go module to be imported into your backend services. It does not include a standalone web server.
+Check out the `/examples` directory for 4 standalone, heavily commented scripts demonstrating how to use `QuickPlay`, `DeterministicPlay`, `JSON Hydration`, and the `League Automator`!
 
-To run the simulation tests and verify the engine's logic:
+To run the simulation tests and verify the underlying engine's logic:
 ```bash
 go test ./engine/... -v
 ```
