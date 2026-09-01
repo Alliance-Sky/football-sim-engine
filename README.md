@@ -111,16 +111,20 @@ for round := 1; round <= len(league.Schedule); round++ {
     }
 }
 
-// 3. Output the perfectly sorted JSON Leaderboards directly to your frontend!
+// Admin Hooks: Show calendars, or manually penalize cheaters!
+upcomingFixtures := league.GetTeamSchedule("juventus-id")
+_ = league.DeductPoints("juventus-id", 15)
+
+// Output the perfectly sorted JSON Leaderboards directly to your frontend!
 pointsTableJSON := league.GetTable()
 goldenBootJSON := league.GetTopScorers(10)
 ```
 
 ### 3. TournamentManager (Sit-and-Go Tournaments)
-Perfect for replicating classic knockout mechanics with 60-second "ready up" lobbies. It natively supports **Rating Caps**, dynamically pairs surviving teams, and automatically handles prize resolution.
+Perfect for replicating classic knockout mechanics with 60-second "ready up" lobbies. It natively supports **Rating Caps**, dynamically pairs surviving teams, and even handles **Two-Legged Aggregate Math**!
 ```go
-// Create a 16-team tournament with a U-80 Player Rating Cap
-tourney, _ := engine.NewTournamentManager("tour-01", "Silver Cup", 16, 80.0, 0)
+// Create a 16-team tournament. True = Two-Legged Aggregate Knockouts!
+tourney, _ := engine.NewTournamentManager("tour-01", "Silver Cup", 16, 80.0, 0, true)
 tourney.WinnerRewards["Gold_Chest"] = 1
 
 tourney.Join(realPlayerTeam) // Dynamically nerfs any 80+ players down to exactly 80.0 for the simulation!
@@ -135,26 +139,32 @@ for {
     
     // Simulate the round...
 }
-
-// Hook into the final results
-winnerID := tourney.GetWinnerID()
-rewards := tourney.WinnerRewards
 ```
 
-### 4. Universal Bot Generation
+### 4. GroupTournamentManager (World Cup Format)
+The engine provides a massive orchestrator to run Group Stages! It mathematically splits 32 teams into 8 groups, plays a single round-robin, and natively feeds the Top 2 from each group directly into a 16-team `TournamentManager` bracket!
+```go
+// 32 Teams, 4 Teams per Group (Creates 8 Groups: A, B, C, D, E, F, G, H)
+worldCup, _ := engine.NewGroupTournamentManager("wc-01", "World Cup", 32, 4)
+
+worldCup.Start() // Shuffles teams and builds the 8 Group Stage leagues
+worldCup.TransitionToKnockouts() // Pulls the Top 2 from each group into the Final Knockout Bracket!
+```
+
+### 5. Universal Bot Generation
 If your League or Tournament lobby timer expires before it fills up, the engine can instantly pad your lobby with fully valid AI Teams. These bots pull from a massive dictionary of 200 cities, 200 first names, and 200 last names to feel completely realistic!
 ```go
 // Automatically generates completely unique teams (e.g. "Paris Bot FC") 
 // with players strictly tuned to your target rating (e.g. 75.0)
 finalTeams := engine.FillWithBots(joinedTeams, 14, 75.0) 
-league, _ := engine.NewLeagueManager(finalTeams, 0, 0)
+league, _ := engine.NewLeagueManager(finalTeams, 0, 0, 2)
 ```
 
-### 5. Match Facades (QuickPlay & Deterministic)
+### 6. Match Facades (QuickPlay & Deterministic)
 * **`engine.QuickPlay(matchType, home, away, homeAdv)`**: A clean facade that auto-injects an RNG seed and returns the `MatchState` instantly.
 * **`engine.DeterministicPlay(matchType, home, away, homeAdv, seed)`**: Replay classic matches or debug edge cases! If you pass the exact same seed (e.g., `9999`), the engine will perfectly recreate the exact same commentary, events, and scoreline every single time.
 
-### 6. UI Dropdown Helpers
+### 7. UI Dropdown Helpers
 Building team management screens? The engine exports static arrays for your frontend:
 ```go
 formations := engine.GetAvailableFormations() // ["4-3-3 Attacking", "4-2-3-1", ...]
