@@ -464,3 +464,27 @@ func (lm *LeagueManager) GetRunnerUpID() string {
 	}
 	return ""
 }
+
+// GetTeamSchedule returns all upcoming fixtures (League and Cup) for a specific team.
+func (lm *LeagueManager) GetTeamSchedule(teamID string) []Fixture {
+	var upcoming []Fixture
+	for i := lm.CurrentRound; i < len(lm.Schedule); i++ {
+		round := lm.Schedule[i]
+		for _, f := range round.Fixtures {
+			if f.Home.ID == teamID || f.Away.ID == teamID {
+				upcoming = append(upcoming, f)
+			}
+		}
+	}
+	return upcoming
+}
+
+// DeductPoints manually deducts points from a team's standing (e.g. for rule violations).
+func (lm *LeagueManager) DeductPoints(teamID string, points int) error {
+	standing, exists := lm.Standings[teamID]
+	if !exists {
+		return fmt.Errorf("team ID %s not found in league standings", teamID)
+	}
+	standing.Points -= points
+	return nil
+}

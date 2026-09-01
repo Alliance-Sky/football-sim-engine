@@ -69,11 +69,30 @@ func main() {
 		}
 	}
 
-	// 4. Output the Final League Table
-	fmt.Println("🏆 FINAL LEAGUE TABLE:")
+	// 4. Output the generated standings
+	fmt.Println("\n📊 FINAL LEAGUE STANDINGS (Before Deductions):")
 	table := league.GetTable()
-	tableJSON, _ := json.MarshalIndent(table, "", "  ")
-	fmt.Println(string(tableJSON))
+	for i, standing := range table {
+		fmt.Printf("%d. %s - %d pts (GD: %d)\n", i+1, standing.TeamName, standing.Points, standing.GoalDifference)
+	}
+
+	// --- NEW FEATURE SHOWCASE ---
+	// Deduct 10 points from the Champion for Financial Fair Play violations!
+	championID := league.GetChampionID()
+	fmt.Printf("\n🚨 BREAKING NEWS: %s has been deducted 10 points for FFP violations!\n", table[0].TeamName)
+	_ = league.DeductPoints(championID, 10)
+
+	fmt.Println("\n📊 UPDATED LEAGUE STANDINGS:")
+	updatedTable := league.GetTable() // Auto-resorts!
+	for i, standing := range updatedTable {
+		fmt.Printf("%d. %s - %d pts (GD: %d)\n", i+1, standing.TeamName, standing.Points, standing.GoalDifference)
+	}
+
+	// Check if Man City has any future fixtures (they shouldn't, season is over)
+	// But during the season, developers can use this to show users their Calendar!
+	mancitySchedule := league.GetTeamSchedule("t2")
+	fmt.Printf("\n📅 Man City Upcoming Fixtures: %d\n", len(mancitySchedule))
+	// ----------------------------
 
 	// 5. Output Golden Boot Winner
 	fmt.Println("\n👟 GOLDEN BOOT WINNER:")
