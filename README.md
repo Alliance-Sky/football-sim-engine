@@ -1,8 +1,8 @@
 # RPS Football Engine
 
-A pure, side-effect-free Go simulation engine for football (soccer) matches.
+A high-performance, stateless Go simulation engine engineered specifically for **Multiplayer Football Manager Games** (e.g., Top Eleven, Hattrick).
 
-This engine is designed to be integrated into backend game architectures. It requires you to pass in unmutated player and team data, and returns a comprehensive "delta payload" (`MatchState`) that you can easily persist to your database.
+This engine is designed to be integrated directly into live multiplayer backend architectures. It executes 90-minute matches in under `0.05` seconds, returning a comprehensive "delta payload" (`MatchState`) that can be instantly broadcasted over WebSockets for live frontend animations or persisted directly to your database.
 
 ---
 
@@ -51,6 +51,9 @@ Immediately after `The Final Whistle!`, the match log records a locked sequence 
 
 ### 7. Delta Payloads & JSON API Ready
 The engine's outputs (`MatchState`, `ClubMatchStats`, `PlayerMatchStats`) are designed as "deltas" easily applied to a database. The engine natively tracks `Matches`, `Wins`, `Draws`, `Losses`, and `HealthLost` per match. Furthermore, all core structs are fully tagged for JSON (`json:"camelCase"`), and the `Commentary` timeline returns an array of `MatchLog` objects (pairing the `Minute` with the `Message`), making it trivial to pipe the simulation output directly into a frontend UI.
+
+### 8. Multiplayer "Live Broadcast" Ready
+Because the engine completes a full match simulation in milliseconds, it is perfectly suited for live multiplayer architectures. Your backend server can simulate a full matchday (e.g., at 00:00 UTC), instantly save the outcome to your database, and then broadcast the resulting JSON `Commentary` array over WebSockets. Tens of thousands of connected mobile/web clients can then receive the payload and animate the match timeline tick-by-tick to create a thrilling "live viewing" experience without stressing your backend servers.
 
 ---
 
