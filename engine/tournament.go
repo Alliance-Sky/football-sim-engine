@@ -66,6 +66,14 @@ func (tm *TournamentManager) Join(team *Team) error {
 	return nil
 }
 
+var botCities = []string{
+	"London", "Berlin", "Paris", "Madrid", "Rome",
+	"Tokyo", "New York", "Sydney", "Rio", "Cairo",
+	"Seoul", "Mexico City", "Mumbai", "Jakarta", "Lagos",
+	"Toronto", "Dubai", "Istanbul", "Moscow", "Bangkok",
+	"Beijing", "Amsterdam", "Dublin", "Vienna", "Lisbon",
+}
+
 // StartWithBots generates AI teams to fill any remaining empty slots so the tournament can begin on schedule.
 func (tm *TournamentManager) StartWithBots() error {
 	needed := tm.MaxParticipants - len(tm.Participants)
@@ -79,7 +87,11 @@ func (tm *TournamentManager) StartWithBots() error {
 			botRating = tm.MaxTeamRating - 10.0
 		}
 
-		botTeam := GenerateBotTeam(fmt.Sprintf("%s-bot-%d", tm.ID, i+1), fmt.Sprintf("Bot FC %d", i+1), botRating)
+		// Pick a city name, avoiding duplicates where possible
+		city := botCities[i%len(botCities)]
+		botName := fmt.Sprintf("%s Bot FC", city)
+
+		botTeam := GenerateBotTeam(fmt.Sprintf("%s-bot-%d", tm.ID, i+1), botName, botRating)
 		tm.Participants = append(tm.Participants, botTeam)
 	}
 
